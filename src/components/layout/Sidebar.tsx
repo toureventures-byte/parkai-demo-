@@ -50,9 +50,7 @@ export function Sidebar() {
       )}
     >
       <div className="flex h-16 items-center gap-2.5 px-4">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-electric-400 to-electric-700 text-sm font-bold text-white shadow-glow">
-          P
-        </div>
+        <img src="/parkai-mark.svg" alt="ParkAI" className="h-8 w-8 shrink-0" />
         {!collapsed && (
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-white">ParkAI</p>

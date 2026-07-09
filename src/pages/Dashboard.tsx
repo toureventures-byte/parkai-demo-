@@ -14,7 +14,7 @@ import { Card, CardHeader } from "../components/ui/Card";
 import { StatCard } from "../components/ui/StatCard";
 import { Badge } from "../components/ui/Badge";
 import { valetKpis, valetRevenue7d } from "../data/valet";
-import { selfParkingKpis } from "../data/selfParking";
+import { selfParkingKpis, selfParkingRevenue7d } from "../data/selfParking";
 import { monthlyKpis } from "../data/monthly";
 import { activityFeed } from "../data/activity";
 import { aiInsights } from "../data/activity";
@@ -23,7 +23,7 @@ import { property } from "../data/property";
 const combinedRevenue = valetRevenue7d.map((d, i) => ({
   day: d.day,
   valet: d.revenue,
-  selfParking: [6210, 5840, 6510, 7120, 9430, 12680, 10920][i],
+  selfParking: selfParkingRevenue7d[i].revenue,
 }));
 
 const severityTone: Record<string, "info" | "success" | "warning" | "critical"> = {
@@ -128,7 +128,7 @@ export default function Dashboard() {
             <Badge tone="success" dot>Live</Badge>
           </div>
           <p className="mt-4 text-sm font-semibold text-white">ParkAI Valet</p>
-          <p className="mt-1 text-xs text-slate-400">{valetKpis.vehiclesOnSite} vehicles on-site · {valetKpis.attendantsOnShift} attendants on shift</p>
+          <p className="mt-1 text-xs text-slate-400">{valetKpis.vehiclesOnSite} vehicles on-site · {valetKpis.activeAttendants} active attendants</p>
           <p className="mt-3 text-2xl font-semibold text-white">${valetKpis.revenueToday.toLocaleString()}</p>
           <p className="text-xs text-slate-500">Revenue today</p>
         </Link>

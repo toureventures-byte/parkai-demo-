@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   Zap,
 } from "lucide-react";
+import { property } from "../data/property";
 
 const products = [
   {
@@ -19,8 +20,8 @@ const products = [
     bg: "bg-electric-500/10",
     ring: "ring-electric-500/20",
     description:
-      "AI-powered valet operations dashboard. Track check-ins, tickets, keys, attendants, wait times, VIPs, incidents, and revenue — all in real time.",
-    points: ["Live vehicle queue & ticket tracking", "Attendant performance & shift management", "VIP recognition and incident logging"],
+      "AI-powered valet operations dashboard. Track check-ins, tickets, keys, attendants, VIPs, incidents, and revenue reconciliation — all in real time.",
+    points: ["Live vehicle queue & ticket tracking", "Revenue reconciliation & leakage detection", "VIP recognition and incident logging"],
   },
   {
     icon: ParkingSquare,
@@ -44,12 +45,12 @@ const products = [
   },
 ];
 
-const trustLogos = ["Two Rodeo", "Related Companies", "Brookfield Properties", "Irvine Company", "Simon Property Group", "Hudson Pacific"];
+const trustLogos = ["Meridian Plaza", "Related Companies", "Brookfield Properties", "Irvine Company", "Simon Property Group", "Hudson Pacific"];
 
 const stats = [
   { value: "312+", label: "Properties running ParkAI" },
   { value: "4.6M", label: "Vehicles processed / year" },
-  { value: "38%", label: "Avg. reduction in wait times" },
+  { value: "$2.4M+", label: "Revenue leakage flagged annually" },
   { value: "99.98%", label: "Gate system uptime" },
 ];
 
@@ -59,11 +60,8 @@ export default function Landing() {
       {/* Nav */}
       <header className="sticky top-0 z-30 border-b border-white/[0.06] bg-navy-900/80 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-electric-400 to-electric-700 text-sm font-bold text-white shadow-glow">
-              P
-            </div>
-            <span className="text-base font-semibold text-white">ParkAI</span>
+          <div className="flex items-center">
+            <img src="/parkai-wordmark.svg" alt="ParkAI" className="h-6 w-auto" />
           </div>
           <nav className="hidden items-center gap-8 text-sm font-medium text-slate-400 md:flex">
             <a href="#products" className="transition-colors hover:text-white">Products</a>
@@ -97,7 +95,7 @@ export default function Landing() {
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-400">
             ParkAI unifies valet operations, self-parking automation, and monthly subscription
-            management into one platform — built for premium properties like Two Rodeo.
+            management into one platform — built for premium properties like Meridian Plaza.
           </p>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
             <Link
@@ -123,12 +121,12 @@ export default function Landing() {
                 <span className="h-2.5 w-2.5 rounded-full bg-rose-400/60" />
                 <span className="h-2.5 w-2.5 rounded-full bg-amber-400/60" />
                 <span className="h-2.5 w-2.5 rounded-full bg-emerald-400/60" />
-                <span className="ml-3 text-xs text-slate-500">app.parkai.io/two-rodeo</span>
+                <span className="ml-3 text-xs text-slate-500">app.parkai.io/meridian-plaza</span>
               </div>
               <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-4">
                 {[
-                  { label: "Vehicles On-Site", value: "47", tone: "text-electric-400" },
-                  { label: "Revenue Today", value: "$18,082", tone: "text-emerald-400" },
+                  { label: "Vehicles On-Site", value: "353", tone: "text-electric-400" },
+                  { label: "Revenue Today", value: "$2,145", tone: "text-emerald-400" },
                   { label: "Occupancy", value: "79%", tone: "text-violet-400" },
                   { label: "Active Alerts", value: "2", tone: "text-amber-400" },
                 ].map((s) => (
@@ -232,12 +230,12 @@ export default function Landing() {
               </div>
               <div className="space-y-3">
                 <div className="ml-auto max-w-[80%] rounded-xl rounded-tr-sm bg-electric-600/90 px-4 py-2.5 text-sm text-white">
-                  Why was valet wait time high at noon today?
+                  Why is $151 in valet revenue flagged today?
                 </div>
                 <div className="max-w-[85%] rounded-xl rounded-tl-sm border border-white/[0.06] bg-white/[0.03] px-4 py-2.5 text-sm text-slate-300">
-                  Wait times peaked at 5.9 min between 12–1 PM, 38% above your 7-day average —
-                  driven by a lunch rush of 38 check-ins with only 3 attendants on shift. I'd
-                  recommend scheduling a 4th attendant or runner during that window.
+                  An $18 cash drawer shortage and a comp ticket issued without manager
+                  override — both still pending sign-off. Reconciliation rate today is
+                  93.4%, in line with your 30-day average.
                 </div>
               </div>
             </div>
@@ -261,7 +259,7 @@ export default function Landing() {
       <section className="border-t border-white/[0.06] bg-navy-950/60 py-24">
         <div className="mx-auto max-w-3xl px-6 text-center">
           <h2 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-            See ParkAI running Two Rodeo
+            See ParkAI running Meridian Plaza
           </h2>
           <p className="mt-4 text-slate-400">
             Explore a fully interactive demo of the valet, self-parking, and monthly parking
@@ -280,10 +278,10 @@ export default function Landing() {
       <footer className="border-t border-white/[0.06] py-10">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 text-sm text-slate-600 sm:flex-row">
           <div className="flex items-center gap-2">
-            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br from-electric-400 to-electric-700 text-[11px] font-bold text-white">P</div>
+            <img src="/parkai-mark.svg" alt="ParkAI" className="h-5 w-5" />
             ParkAI © 2026 — Demo environment
           </div>
-          <p>Two Rodeo Drive, Beverly Hills, CA</p>
+          <p>{property.fullName}</p>
         </div>
       </footer>
     </div>

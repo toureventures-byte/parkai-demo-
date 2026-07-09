@@ -1,11 +1,11 @@
 export const property = {
-  name: "Two Rodeo",
-  fullName: "Two Rodeo Drive",
-  address: "2 Rodeo Dr, Beverly Hills, CA 90210",
+  name: "Meridian Plaza",
+  fullName: "Meridian Plaza",
+  address: "500 Meridian Ave, Meridian City, CA 90045",
   type: "Luxury Retail & Mixed-Use Property",
   manager: "Dana Whitfield",
   managerTitle: "Director of Parking Operations",
-  garages: ["Via Rodeo Garage", "Dayton Way Structure", "Beverly Dr Valet Court"],
+  garages: ["North Garage", "West Structure", "Valet Court"],
   timezone: "PT",
 };
 
@@ -18,7 +18,7 @@ export const company = {
       name: "ParkAI Valet",
       short: "Valet",
       description:
-        "AI-powered valet operations dashboard for check-ins, tickets, keys, attendants, wait times, VIPs, incidents, and revenue.",
+        "AI-powered valet operations dashboard for check-ins, tickets, keys, attendants, VIPs, incidents, and revenue reconciliation.",
       color: "electric",
     },
     {

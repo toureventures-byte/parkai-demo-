@@ -23,17 +23,14 @@ export default function Login() {
     <div className="grid min-h-screen grid-cols-1 bg-navy-900 lg:grid-cols-2">
       {/* Left / form */}
       <div className="flex flex-col justify-center px-8 py-12 sm:px-16 lg:px-20">
-        <Link to="/" className="mb-12 flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-electric-400 to-electric-700 text-sm font-bold text-white shadow-glow">
-            P
-          </div>
-          <span className="text-base font-semibold text-white">ParkAI</span>
+        <Link to="/" className="mb-12 flex items-center">
+          <img src="/parkai-wordmark.svg" alt="ParkAI" className="h-7 w-auto" />
         </Link>
 
         <div className="mx-auto w-full max-w-sm">
           <h1 className="text-2xl font-semibold tracking-tight text-white">Welcome back</h1>
           <p className="mt-2 text-sm text-slate-400">
-            Sign in to the ParkAI operations console for Two Rodeo.
+            Sign in to the ParkAI operations console for Meridian Plaza.
           </p>
 
           <div className="mt-6 rounded-lg border border-electric-500/20 bg-electric-500/5 px-4 py-3 text-xs text-electric-300">
@@ -85,14 +82,14 @@ export default function Login() {
       <div className="relative hidden overflow-hidden bg-navy-950 lg:block">
         <div className="absolute inset-0 bg-grid-glow" />
         <div className="relative flex h-full flex-col justify-center px-16">
-          <p className="text-xs font-semibold uppercase tracking-wider text-electric-400">Two Rodeo Drive</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-electric-400">Meridian Plaza</p>
           <h2 className="mt-3 max-w-md text-3xl font-semibold leading-tight tracking-tight text-white">
             Valet, self parking, and monthly access — unified in one console.
           </h2>
 
           <div className="mt-10 space-y-3">
             {[
-              { icon: Car, label: "Valet", value: "47 vehicles on-site", tone: "text-electric-400", bg: "bg-electric-500/10" },
+              { icon: Car, label: "Valet", value: "20 vehicles on-site", tone: "text-electric-400", bg: "bg-electric-500/10" },
               { icon: ParkingSquare, label: "Self Parking", value: "79% occupancy across 3 garages", tone: "text-emerald-400", bg: "bg-emerald-500/10" },
               { icon: Building2, label: "Monthly", value: "214 active accounts, 6 pending", tone: "text-violet-400", bg: "bg-violet-500/10" },
             ].map((row) => (

@@ -11,25 +11,25 @@ interface Message {
 }
 
 const suggestedPrompts = [
-  { icon: Car, text: "Why was valet wait time high at noon today?" },
+  { icon: Car, text: "Why is $151 in valet revenue flagged today?" },
   { icon: ParkingSquare, text: "Summarize today's self-parking exceptions" },
   { icon: Building2, text: "Which monthly accounts are at risk of churn?" },
   { icon: TrendingUp, text: "Draft this week's revenue summary" },
 ];
 
 const cannedResponses: Record<string, string> = {
-  "Why was valet wait time high at noon today?":
-    "Wait times peaked at 5.9 min between 12–1 PM, 38% above your 7-day average of 4.3 min. This coincided with 38 check-ins in one hour against only 3 attendants on shift (Marco, Priya, and Diego). Casey's shift doesn't start until 3 PM. Recommendation: shift Casey's start time to 11:30 AM on high-traffic days, or add a dedicated runner for the 12–2 PM lunch window — based on similar interventions at comparable properties, this typically cuts peak wait time by ~30%.",
+  "Why is $151 in valet revenue flagged today?":
+    "Today's $151 in flagged leakage breaks down into two items: an $18 cash drawer shortage on Diego Ramirez's shift (ticket VLT-4826, still under review), and a pattern of comp tickets issued without a matching manager override earlier this week that's still working through reconciliation. Reconciliation rate for today sits at 93.4%, in line with your 30-day average of 94.1%. Recommendation: require a second approval on any comp over $25 — properties with that control in place typically see leakage drop by 20-30%.",
   "Summarize today's self-parking exceptions":
-    "There's 1 open exception today: EX-3301 at Via Rodeo Exit 1 (ticket SP-88219), a lost-ticket manual override by attendant K. Munoz, $12 waived, still pending manager review. Two other exceptions this week — a gate arm fault at Beverly Ct and a validation mismatch at Dayton Way — were both auto-resolved or manager-approved. Exception volume is down 40% week-over-week after the Beverly Ct sensor recalibration.",
+    "There's 1 open exception today: EX-3301 at North Garage Exit 1 (ticket SP-88219), a lost-ticket manual override by attendant K. Munoz, $12 waived, still pending manager review. Two other exceptions this week — a gate arm fault at Valet Court and a validation mismatch at West Structure — were both auto-resolved or manager-approved. Exception volume is down 40% week-over-week after the Valet Court sensor recalibration.",
   "Which monthly accounts are at risk of churn?":
-    "3 accounts show churn risk signals: Marcus Feldman (2 failed payments in 30 days, now suspended, $425/mo at risk), and two retail staff accounts with lapsed access card usage over the last 14 days. I'd recommend a proactive billing outreach to Marcus before the account moves to formal collections, and a check-in with the retail staff accounts to confirm they're still employed at Two Rodeo.",
+    "3 accounts show churn risk signals: Marcus Feldman (2 failed payments in 30 days, now suspended, $425/mo at risk), and two retail staff accounts with lapsed access card usage over the last 14 days. I'd recommend a proactive billing outreach to Marcus before the account moves to formal collections, and a check-in with the retail staff accounts to confirm they're still employed at Meridian Plaza.",
   "Draft this week's revenue summary":
-    "Week 27 (Jun 29 – Jul 5) revenue across all products: Valet generated $85,890 across 1,364 tickets (avg ticket $63.00), up 9.2% week-over-week driven by strong weekend volume. Self Parking generated $58,710 across transient transactions, with validations accounting for $1,261 in offset revenue. Monthly recurring revenue held steady at $68,420 across 214 active accounts. Combined property parking revenue: $144,600 for the week, +7.4% vs. the prior week.",
+    "This week's revenue across all products: Valet generated $6,080 net collected across 502 tickets (avg ticket $12.11 after validations), against $17,240 in gross ticket value — a reminder of how much validation and comp activity is running through the valet line. Self Parking generated $6,885 across transient transactions. Monthly recurring revenue held steady at $68,420 across 214 active accounts. Combined transient parking revenue (valet + self-parking): $12,965 for the week, with $151 still flagged for reconciliation.",
 };
 
 const defaultResponse =
-  "Here's what I found across your ParkAI data for Two Rodeo: operations are tracking normally today with no critical alerts outstanding. Ask me about valet performance, self-parking exceptions, monthly account health, or ask me to draft a report and I'll pull the relevant numbers together.";
+  "Here's what I found across your ParkAI data for Meridian Plaza: operations are tracking normally today with no critical alerts outstanding. Ask me about valet performance, self-parking exceptions, monthly account health, or ask me to draft a report and I'll pull the relevant numbers together.";
 
 export default function AIAssistant() {
   const [messages, setMessages] = useState<Message[]>([
@@ -37,7 +37,7 @@ export default function AIAssistant() {
       id: "welcome",
       role: "assistant",
       content:
-        "Hi Dana — I'm ParkAI Assistant. I can answer questions about valet, self parking, and monthly operations at Two Rodeo, or draft reports for you. What would you like to know?",
+        "Hi Dana — I'm ParkAI Assistant. I can answer questions about valet, self parking, and monthly operations at Meridian Plaza, or draft reports for you. What would you like to know?",
     },
   ]);
   const [input, setInput] = useState("");
@@ -67,7 +67,7 @@ export default function AIAssistant() {
       <PageHeader
         eyebrow="ParkAI Assistant"
         title="Ask anything about your parking operations"
-        description="Grounded in live Valet, Self Parking, and Monthly data for Two Rodeo."
+        description="Grounded in live Valet, Self Parking, and Monthly data for Meridian Plaza."
       />
 
       <Card className="flex flex-1 flex-col overflow-hidden" padded={false}>
@@ -130,7 +130,7 @@ export default function AIAssistant() {
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask about wait times, revenue, exceptions, accounts…"
+            placeholder="Ask about revenue, reconciliation, exceptions, accounts…"
             className="flex-1 rounded-lg border border-white/[0.08] bg-white/[0.03] px-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-electric-500/50 focus:outline-none focus:ring-1 focus:ring-electric-500/50"
           />
           <button

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 200" width="640" height="200">
+  <defs>
+    <linearGradient id="gB" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22D3EE"/>
+      <stop offset="100%" stop-color="#3B82F6"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(20,20)">
+    <rect x="0" y="0" width="160" height="160" rx="36" fill="#F3F8FE"/>
+    <rect x="1" y="1" width="158" height="158" rx="35" fill="none" stroke="url(#gB)" stroke-opacity="0.35" stroke-width="1"/>
+    <rect x="55" y="39" width="57" height="43" rx="21.5" fill="url(#gB)"/>
+    <rect x="55" y="39" width="17" height="83" rx="7" fill="url(#gB)"/>
+    <line x1="44" y1="60" x2="118" y2="60" stroke="#F3F8FE" stroke-width="4" stroke-linecap="round" opacity="0.6"/>
+    <line x1="44" y1="60" x2="113" y2="60" stroke="#0C447C" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+    <circle cx="118" cy="60" r="4" fill="#3B82F6"/>
+    <circle cx="118" cy="60" r="7.5" fill="none" stroke="#3B82F6" stroke-width="1" opacity="0.4"/>
+  </g>
+  <text x="205" y="122" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="76" font-weight="600" fill="#FFFFFF">Park<tspan fill="url(#gB)" font-weight="700">Ai</tspan></text>
+  <circle cx="629" cy="65" r="4.5" fill="#3B82F6"/>
+  <circle cx="629" cy="65" r="8" fill="none" stroke="#3B82F6" stroke-width="1" opacity="0.4"/>
+</svg>

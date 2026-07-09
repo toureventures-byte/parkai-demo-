@@ -1,13 +1,22 @@
 import { useState } from "react";
-import { Car, Clock, DollarSign, Users, KeyRound, AlertTriangle, Crown, Download } from "lucide-react";
-import { BarChart, Bar, LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
+import { Car, DollarSign, ShieldAlert, Crown, KeyRound, Users, AlertTriangle, Download } from "lucide-react";
+import { BarChart, Bar, AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { PageHeader } from "../components/ui/PageHeader";
 import { Card, CardHeader } from "../components/ui/Card";
 import { StatCard } from "../components/ui/StatCard";
 import { Badge } from "../components/ui/Badge";
 import { Button } from "../components/ui/Button";
 import { Avatar } from "../components/ui/Avatar";
-import { valetTickets, attendants, valetIncidents, valetHourly, valetKpis, type ValetStatus } from "../data/valet";
+import {
+  valetTickets,
+  attendants,
+  valetIncidents,
+  valetReconciliation,
+  valetHourly,
+  valetRevenueReconciliation,
+  valetKpis,
+  type ValetStatus,
+} from "../data/valet";
 
 const statusMeta: Record<ValetStatus, { label: string; tone: "neutral" | "electric" | "success" | "warning" | "critical" }> = {
   parked: { label: "Parked", tone: "success" },
@@ -17,7 +26,7 @@ const statusMeta: Record<ValetStatus, { label: string; tone: "neutral" | "electr
   flagged: { label: "Flagged", tone: "critical" },
 };
 
-const tabs = ["Live Queue", "Attendants", "Incidents"] as const;
+const tabs = ["Live Queue", "Staff Performance", "Reconciliation", "Incidents"] as const;
 
 export default function ValetDashboard() {
   const [tab, setTab] = useState<(typeof tabs)[number]>("Live Queue");
@@ -27,7 +36,7 @@ export default function ValetDashboard() {
       <PageHeader
         eyebrow="ParkAI Valet"
         title="Valet Operations"
-        description="Live check-ins, tickets, keys, attendants, and revenue for Two Rodeo valet."
+        description="Live check-ins, tickets, keys, attendants, and revenue reconciliation for Meridian Plaza valet."
         actions={
           <>
             <Button variant="secondary" size="sm"><Download className="h-3.5 w-3.5" /> Export</Button>
@@ -37,10 +46,10 @@ export default function ValetDashboard() {
       />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="Vehicles On-Site" value={`${valetKpis.vehiclesOnSite}`} icon={Car} delta="+8" deltaLabel="vs. yesterday" accent="electric" />
-        <StatCard label="Avg Wait Time" value={`${valetKpis.avgWaitMin} min`} icon={Clock} delta="+0.9 min" deltaLabel="vs. avg" trend="down" accent="amber" />
+        <StatCard label="Vehicles On-Site" value={`${valetKpis.vehiclesOnSite}`} icon={Car} delta="+3" deltaLabel="vs. yesterday" accent="electric" />
         <StatCard label="Revenue Today" value={`$${valetKpis.revenueToday.toLocaleString()}`} icon={DollarSign} delta="+9.2%" deltaLabel="vs. yesterday" accent="emerald" />
-        <StatCard label="VIP Guests Today" value={`${valetKpis.vipGuestsToday}`} icon={Crown} delta="+4" deltaLabel="vs. avg" accent="violet" />
+        <StatCard label="Leakage Flagged" value={`$${valetKpis.leakageFlagged.toLocaleString()}`} icon={ShieldAlert} delta="-12%" deltaLabel="vs. avg" trend="down" accent="amber" />
+        <StatCard label="VIP Guests Today" value={`${valetKpis.vipGuestsToday}`} icon={Crown} delta="+2" deltaLabel="vs. avg" accent="violet" />
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
@@ -65,17 +74,32 @@ export default function ValetDashboard() {
         </Card>
 
         <Card>
-          <CardHeader title="Avg. Wait Time" subtitle="Minutes, hourly trend" />
+          <CardHeader title="Revenue Reconciliation" subtitle="Ticketed vs. collected, hourly" />
           <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={valetHourly} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
+              <AreaChart data={valetRevenueReconciliation} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="ticketedGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.35} />
+                    <stop offset="100%" stopColor="#f59e0b" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="collectedGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#2483ff" stopOpacity={0.45} />
+                    <stop offset="100%" stopColor="#2483ff" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
                 <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
                 <XAxis dataKey="hour" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
-                <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
-                <Tooltip contentStyle={{ background: "#111827", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 12 }} />
-                <Line type="monotone" dataKey="avgWait" stroke="#f59e0b" strokeWidth={2} dot={false} />
-              </LineChart>
+                <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
+                <Tooltip contentStyle={{ background: "#111827", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 12 }} formatter={(v: any) => `$${v}`} />
+                <Area type="monotone" dataKey="ticketed" name="Ticketed" stroke="#f59e0b" fill="url(#ticketedGrad)" strokeWidth={2} />
+                <Area type="monotone" dataKey="collected" name="Collected" stroke="#2483ff" fill="url(#collectedGrad)" strokeWidth={2} />
+              </AreaChart>
             </ResponsiveContainer>
+          </div>
+          <div className="mt-2 flex items-center gap-5 text-xs text-slate-400">
+            <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-amber-500" /> Ticketed</span>
+            <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-electric-500" /> Collected</span>
           </div>
         </Card>
       </div>
@@ -105,7 +129,7 @@ export default function ValetDashboard() {
                   <th className="px-5 py-3 font-medium">Guest</th>
                   <th className="px-5 py-3 font-medium">Vehicle</th>
                   <th className="px-5 py-3 font-medium">Attendant</th>
-                  <th className="px-5 py-3 font-medium">Wait</th>
+                  <th className="px-5 py-3 font-medium">Check-In</th>
                   <th className="px-5 py-3 font-medium">Spot</th>
                   <th className="px-5 py-3 font-medium">Status</th>
                 </tr>
@@ -125,11 +149,7 @@ export default function ValetDashboard() {
                       <p className="text-xs text-slate-500">{t.plate} · {t.color}</p>
                     </td>
                     <td className="px-5 py-3 text-slate-400">{t.attendant}</td>
-                    <td className="px-5 py-3">
-                      <span className={t.waitMin > 8 ? "font-medium text-rose-400" : "text-slate-400"}>
-                        {t.waitMin > 0 ? `${t.waitMin} min` : "—"}
-                      </span>
-                    </td>
+                    <td className="px-5 py-3 text-slate-400">{t.checkIn}</td>
                     <td className="px-5 py-3 text-xs text-slate-500">{t.spot}</td>
                     <td className="px-5 py-3">
                       <Badge tone={statusMeta[t.status].tone} dot>{statusMeta[t.status].label}</Badge>
@@ -141,19 +161,19 @@ export default function ValetDashboard() {
           </div>
         )}
 
-        {tab === "Attendants" && (
+        {tab === "Staff Performance" && (
           <div className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2 lg:grid-cols-3">
             {attendants.map((a) => (
               <div key={a.name} className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-4">
                 <div className="flex items-center gap-3">
-                  <Avatar name={a.name} colorClass={a.status === "on-shift" ? "bg-electric-500" : "bg-slate-600"} />
+                  <Avatar name={a.name} colorClass="bg-electric-500" />
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-white">{a.name}</p>
                     <p className="text-xs text-slate-500">{a.role}</p>
                   </div>
-                  <Badge tone={a.status === "on-shift" ? "success" : "neutral"} dot className="ml-auto shrink-0">
-                    {a.status === "on-shift" ? "On shift" : "Off shift"}
-                  </Badge>
+                  {a.cashVariance !== 0 && (
+                    <Badge tone="warning" className="ml-auto shrink-0">-${Math.abs(a.cashVariance)}</Badge>
+                  )}
                 </div>
                 <div className="mt-4 grid grid-cols-3 gap-2 text-center">
                   <div>
@@ -169,7 +189,31 @@ export default function ValetDashboard() {
                     <p className="text-[10px] uppercase text-slate-500">Rating</p>
                   </div>
                 </div>
-                <p className="mt-3 text-xs text-slate-500">Shift: {a.shift}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {tab === "Reconciliation" && (
+          <div className="divide-y divide-white/[0.05]">
+            {valetReconciliation.map((r) => (
+              <div key={r.id} className="flex items-start gap-4 p-5">
+                <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${r.status === "flagged" ? "bg-amber-500/10" : "bg-slate-500/10"}`}>
+                  <ShieldAlert className={`h-4.5 w-4.5 ${r.status === "flagged" ? "text-amber-400" : "text-slate-400"}`} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-medium text-white">{r.type}</p>
+                    <div className="flex items-center gap-2">
+                      {r.amount !== 0 && <span className="text-sm font-medium text-rose-400">-${Math.abs(r.amount)}</span>}
+                      <Badge tone={r.status === "resolved" ? "success" : "warning"}>{r.status}</Badge>
+                    </div>
+                  </div>
+                  <p className="mt-1 text-xs text-slate-400">
+                    {r.id} · Ticket {r.ticket} · {r.attendant}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">{r.time}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -203,14 +247,14 @@ export default function ValetDashboard() {
           <KeyRound className="h-5 w-5 text-electric-400" />
           <div>
             <p className="text-sm font-medium text-white">Key Wall Status</p>
-            <p className="text-xs text-slate-500">47 keys checked out · 3 unassigned</p>
+            <p className="text-xs text-slate-500">{valetKpis.vehiclesOnSite} keys checked out · 3 unassigned</p>
           </div>
         </div>
         <div className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-navy-800/60 p-4">
           <Users className="h-5 w-5 text-emerald-400" />
           <div>
-            <p className="text-sm font-medium text-white">Attendants On Shift</p>
-            <p className="text-xs text-slate-500">{valetKpis.attendantsOnShift} active · next shift change 3:00 PM</p>
+            <p className="text-sm font-medium text-white">Reconciliation Rate</p>
+            <p className="text-xs text-slate-500">{valetKpis.reconciliationRate}% of tickets fully reconciled today</p>
           </div>
         </div>
         <div className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-navy-800/60 p-4">
