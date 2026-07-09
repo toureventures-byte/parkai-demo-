@@ -89,7 +89,7 @@ export default function Dashboard() {
                 <Tooltip
                   contentStyle={{ background: "#111827", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 12 }}
                   labelStyle={{ color: "#fff" }}
-                  formatter={(v: number) => `$${v.toLocaleString()}`}
+                  formatter={(v: any) => `$${Number(v).toLocaleString()}`}
                 />
                 <Area type="monotone" dataKey="valet" name="Valet" stroke="#2483ff" fill="url(#valetGrad)" strokeWidth={2} />
                 <Area type="monotone" dataKey="selfParking" name="Self Parking" stroke="#34d399" fill="url(#spGrad)" strokeWidth={2} />
