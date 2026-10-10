@@ -32,7 +32,7 @@ const navSections = [
   {
     label: "Tools",
     items: [
-      { to: "/app/assistant", label: "AI Assistant", icon: Sparkles },
+      { to: "/app/assistant", label: "Ask ParkGrid", icon: Sparkles },
       { to: "/app/reports", label: "Reports", icon: FileBarChart },
       { to: "/app/settings", label: "Settings", icon: Settings },
     ],
@@ -50,10 +50,10 @@ export function Sidebar() {
       )}
     >
       <div className="flex h-16 items-center gap-2.5 px-4">
-        <img src="/parkai-mark.svg" alt="ParkAI" className="h-8 w-8 shrink-0" />
+        <img src="/parkgrid-mark.svg" alt="ParkGrid" className="h-8 w-8 shrink-0" />
         {!collapsed && (
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-white">ParkAI</p>
+            <p className="truncate text-sm font-semibold text-white">ParkGrid</p>
             <p className="truncate text-[11px] text-slate-500">{property.name}</p>
           </div>
         )}

@@ -29,7 +29,7 @@ const cannedResponses: Record<string, string> = {
 };
 
 const defaultResponse =
-  "Here's what I found across your ParkAI data for Meridian Plaza: operations are tracking normally today with no critical alerts outstanding. Ask me about valet performance, self-parking exceptions, monthly account health, or ask me to draft a report and I'll pull the relevant numbers together.";
+  "Here's what I found across your ParkGrid data for Meridian Plaza: operations are tracking normally today with no critical alerts outstanding. Ask me about valet performance, self-parking exceptions, monthly account health, or ask me to draft a report and I'll pull the relevant numbers together.";
 
 export default function AIAssistant() {
   const [messages, setMessages] = useState<Message[]>([
@@ -37,7 +37,7 @@ export default function AIAssistant() {
       id: "welcome",
       role: "assistant",
       content:
-        "Hi Dana — I'm ParkAI Assistant. I can answer questions about valet, self parking, and monthly operations at Meridian Plaza, or draft reports for you. What would you like to know?",
+        "Hi Dana — I'm ParkGrid's assistant. I can answer questions about valet, self parking, and monthly operations at Meridian Plaza, or draft reports for you. What would you like to know?",
     },
   ]);
   const [input, setInput] = useState("");
@@ -65,7 +65,7 @@ export default function AIAssistant() {
   return (
     <div className="flex h-[calc(100vh-8rem)] flex-col">
       <PageHeader
-        eyebrow="ParkAI Assistant"
+        eyebrow="Ask ParkGrid"
         title="Ask anything about your parking operations"
         description="Grounded in live Valet, Self Parking, and Monthly data for Meridian Plaza."
       />

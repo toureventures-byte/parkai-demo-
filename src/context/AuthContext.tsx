@@ -9,7 +9,7 @@ interface AuthState {
 }
 
 const AuthContext = createContext<AuthState | null>(null);
-const STORAGE_KEY = "parkai-demo-authenticated";
+const STORAGE_KEY = "parkgrid-demo-authenticated";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(

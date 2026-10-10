@@ -11,10 +11,10 @@ import { property } from "../data/property";
 const tabs = ["Integrations", "Team", "Billing", "Notifications"] as const;
 
 const teamMembers = [
-  { name: "Dana Whitfield", role: "Director of Parking Operations", email: "dana.whitfield@parkai.io", access: "Owner", color: "bg-electric-500" },
-  { name: "Marco Delgado", role: "Lead Valet Attendant", email: "marco.d@parkai.io", access: "Valet Manager", color: "bg-emerald-500" },
-  { name: "Kevin Munoz", role: "Self Parking Supervisor", email: "kevin.m@parkai.io", access: "Self Parking Manager", color: "bg-violet-500" },
-  { name: "Rachel Ito", role: "Finance Lead", email: "rachel.ito@parkai.io", access: "Billing Admin", color: "bg-amber-500" },
+  { name: "Dana Whitfield", role: "Director of Parking Operations", email: "dana.whitfield@getparkgrid.com", access: "Owner", color: "bg-electric-500" },
+  { name: "Marco Delgado", role: "Lead Valet Attendant", email: "marco.d@getparkgrid.com", access: "Valet Manager", color: "bg-emerald-500" },
+  { name: "Kevin Munoz", role: "Self Parking Supervisor", email: "kevin.m@getparkgrid.com", access: "Self Parking Manager", color: "bg-violet-500" },
+  { name: "Rachel Ito", role: "Finance Lead", email: "rachel.ito@getparkgrid.com", access: "Billing Admin", color: "bg-amber-500" },
 ];
 
 export default function Settings() {
@@ -48,7 +48,7 @@ export default function Settings() {
           <Card className="xl:col-span-2">
             <CardHeader
               title="Gate & Arm Systems"
-              subtitle="Connected hardware for ParkAI Self Parking & Monthly access control"
+              subtitle="Connected hardware for ParkGrid Self Parking & Monthly access control"
               action={<Button size="sm" variant="secondary"><Plus className="h-3.5 w-3.5" /> Add Gate</Button>}
             />
             <div className="space-y-2.5">
@@ -121,7 +121,7 @@ export default function Settings() {
       {tab === "Billing" && (
         <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
           <Card>
-            <CardHeader title="Subscription Plan" subtitle="ParkAI Enterprise" />
+            <CardHeader title="Subscription Plan" subtitle="ParkGrid Enterprise" />
             <div className="flex items-center justify-between rounded-lg border border-electric-500/20 bg-electric-500/5 p-4">
               <div>
                 <p className="text-sm font-semibold text-white">Enterprise — All 3 Products</p>
@@ -137,7 +137,7 @@ export default function Settings() {
               <CreditCard className="h-5 w-5 text-slate-400" />
               <div>
                 <p className="text-sm text-slate-200">Visa ending in 2210</p>
-                <p className="text-xs text-slate-500">Billing contact: Rachel Ito · rachel.ito@parkai.io</p>
+                <p className="text-xs text-slate-500">Billing contact: Rachel Ito · rachel.ito@getparkgrid.com</p>
               </div>
             </div>
           </Card>

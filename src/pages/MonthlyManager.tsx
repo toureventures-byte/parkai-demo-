@@ -32,7 +32,7 @@ export default function MonthlyManager() {
   return (
     <div>
       <PageHeader
-        eyebrow="ParkAI Monthly — Manager App"
+        eyebrow="ParkGrid Monthly — Manager App"
         title="Monthly Parking Management"
         description="Approve users, manage billing, and control gate access for monthly accounts."
         actions={<Button size="sm">+ Add Account</Button>}
@@ -54,7 +54,7 @@ export default function MonthlyManager() {
                 <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
                 <XAxis dataKey="month" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
                 <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
-                <Tooltip contentStyle={{ background: "#111827", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 12 }} />
+                <Tooltip contentStyle={{ background: "#0c2419", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 12 }} />
                 <Line type="monotone" dataKey="accounts" name="Accounts" stroke="#a78bfa" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>

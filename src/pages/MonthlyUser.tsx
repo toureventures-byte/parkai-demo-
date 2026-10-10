@@ -21,7 +21,7 @@ export default function MonthlyUser() {
   return (
     <div>
       <PageHeader
-        eyebrow="ParkAI Monthly — Parker App"
+        eyebrow="ParkGrid Monthly — Parker App"
         title={`Welcome back, ${currentUser.name.split(" ")[0]}`}
         description={`${currentUser.unit} · Member since ${currentUser.memberSince}`}
       />

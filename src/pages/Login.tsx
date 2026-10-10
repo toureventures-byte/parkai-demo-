@@ -6,7 +6,7 @@ import { useAuth } from "../context/AuthContext";
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState("dana.whitfield@parkai.io");
+  const [email, setEmail] = useState("dana.whitfield@getparkgrid.com");
   const [password, setPassword] = useState("••••••••••");
   const [loading, setLoading] = useState(false);
 
@@ -24,13 +24,13 @@ export default function Login() {
       {/* Left / form */}
       <div className="flex flex-col justify-center px-8 py-12 sm:px-16 lg:px-20">
         <Link to="/" className="mb-12 flex items-center">
-          <img src="/parkai-wordmark.svg" alt="ParkAI" className="h-7 w-auto" />
+          <img src="/parkgrid-wordmark.svg" alt="ParkGrid" className="h-7 w-auto" />
         </Link>
 
         <div className="mx-auto w-full max-w-sm">
           <h1 className="text-2xl font-semibold tracking-tight text-white">Welcome back</h1>
           <p className="mt-2 text-sm text-slate-400">
-            Sign in to the ParkAI operations console for Meridian Plaza.
+            Sign in to the ParkGrid operations console for Meridian Plaza.
           </p>
 
           <div className="mt-6 rounded-lg border border-electric-500/20 bg-electric-500/5 px-4 py-3 text-xs text-electric-300">
@@ -73,7 +73,7 @@ export default function Login() {
           </form>
 
           <p className="mt-8 text-center text-xs text-slate-600">
-            Protected by ParkAI Identity · SSO available for enterprise accounts
+            Protected by ParkGrid Identity · SSO available for enterprise accounts
           </p>
         </div>
       </div>

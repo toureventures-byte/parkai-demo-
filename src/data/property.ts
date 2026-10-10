@@ -10,12 +10,12 @@ export const property = {
 };
 
 export const company = {
-  name: "ParkAI",
-  tagline: "The operating system for modern parking.",
+  name: "ParkGrid",
+  tagline: "No Hardware. Just Insight.",
   products: [
     {
       id: "valet",
-      name: "ParkAI Valet",
+      name: "ParkGrid Valet",
       short: "Valet",
       description:
         "AI-powered valet operations dashboard for check-ins, tickets, keys, attendants, VIPs, incidents, and revenue reconciliation.",
@@ -23,7 +23,7 @@ export const company = {
     },
     {
       id: "self-parking",
-      name: "ParkAI Self Parking",
+      name: "ParkGrid Self Parking",
       short: "Self Parking",
       description:
         "Connects to gate/arm systems or CSV uploads to automate transient revenue, validations, occupancy, and exception reporting.",
@@ -31,7 +31,7 @@ export const company = {
     },
     {
       id: "monthly",
-      name: "ParkAI Monthly",
+      name: "ParkGrid Monthly",
       short: "Monthly",
       description:
         "Monthly parking automation with a Manager app and a Parker app, wired directly into gate access control.",

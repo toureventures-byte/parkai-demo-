@@ -102,7 +102,7 @@ export default function Reports() {
           <Card className="border-electric-500/20 bg-electric-500/5">
             <p className="text-sm font-medium text-white">Need a custom report?</p>
             <p className="mt-1.5 text-xs text-slate-400">
-              Ask ParkAI Assistant to draft any report in plain English — "compare valet revenue
+              Ask ParkGrid to draft any report in plain English — "compare valet revenue
               this week vs last week" or "list all past-due monthly accounts."
             </p>
             <Button size="sm" className="mt-3">Open Assistant</Button>

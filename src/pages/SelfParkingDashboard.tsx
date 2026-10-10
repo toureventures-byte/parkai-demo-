@@ -25,7 +25,7 @@ export default function SelfParkingDashboard() {
   return (
     <div>
       <PageHeader
-        eyebrow="ParkAI Self Parking"
+        eyebrow="ParkGrid Self Parking"
         title="Self Parking Operations"
         description="Transient revenue, validations, occupancy, and exceptions from gate & CSV data."
         actions={
@@ -51,15 +51,15 @@ export default function SelfParkingDashboard() {
               <AreaChart data={occupancyTrend} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
                 <defs>
                   <linearGradient id="occGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#34d399" stopOpacity={0.4} />
-                    <stop offset="100%" stopColor="#34d399" stopOpacity={0} />
+                    <stop offset="0%" stopColor="#60a5fa" stopOpacity={0.4} />
+                    <stop offset="100%" stopColor="#60a5fa" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
                 <XAxis dataKey="time" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
                 <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => `${v}%`} />
-                <Tooltip contentStyle={{ background: "#111827", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 12 }} formatter={(v: any) => `${v}%`} />
-                <Area type="monotone" dataKey="occ" stroke="#34d399" fill="url(#occGrad)" strokeWidth={2} />
+                <Tooltip contentStyle={{ background: "#0c2419", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 12 }} formatter={(v: any) => `${v}%`} />
+                <Area type="monotone" dataKey="occ" stroke="#60a5fa" fill="url(#occGrad)" strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
           </div>

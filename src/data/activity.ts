@@ -14,7 +14,7 @@ export const activityFeed: ActivityItem[] = [
   { id: "5", product: "Monthly", message: "Payment failed for Marcus Feldman — account moved to past due", time: "41 min ago", severity: "warning" },
   { id: "6", product: "Self Parking", message: "Daily Cash Report for Jul 7 generated successfully", time: "2 hrs ago", severity: "success" },
   { id: "7", product: "Valet", message: "Cash drawer shortage flagged for Diego Ramirez — $18 unreconciled", time: "3 hrs ago", severity: "warning" },
-  { id: "8", product: "System", message: "ParkAI Assistant flagged $151 in unreconciled valet revenue for manager review", time: "3 hrs ago", severity: "warning" },
+  { id: "8", product: "System", message: "ParkGrid flagged $151 in unreconciled valet revenue for manager review", time: "3 hrs ago", severity: "warning" },
   { id: "9", product: "Monthly", message: "Access reactivated for Isabelle Foster after billing update", time: "5 hrs ago", severity: "success" },
   { id: "10", product: "Self Parking", message: "Gate Valet Court — Entry 3 reconnected after brief signal drop", time: "6 hrs ago", severity: "success" },
 ];

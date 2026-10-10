@@ -34,7 +34,7 @@ export default function ValetDashboard() {
   return (
     <div>
       <PageHeader
-        eyebrow="ParkAI Valet"
+        eyebrow="ParkGrid Valet"
         title="Valet Operations"
         description="Live check-ins, tickets, keys, attendants, and revenue reconciliation for Meridian Plaza valet."
         actions={
@@ -61,8 +61,8 @@ export default function ValetDashboard() {
                 <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
                 <XAxis dataKey="hour" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
                 <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
-                <Tooltip contentStyle={{ background: "#111827", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 12 }} />
-                <Bar dataKey="checkIns" name="Check-ins" fill="#2483ff" radius={[4, 4, 0, 0]} />
+                <Tooltip contentStyle={{ background: "#0c2419", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 12 }} />
+                <Bar dataKey="checkIns" name="Check-ins" fill="#45d99b" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="checkOuts" name="Check-outs" fill="#3b4863" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -84,16 +84,16 @@ export default function ValetDashboard() {
                     <stop offset="100%" stopColor="#f59e0b" stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="collectedGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#2483ff" stopOpacity={0.45} />
-                    <stop offset="100%" stopColor="#2483ff" stopOpacity={0} />
+                    <stop offset="0%" stopColor="#45d99b" stopOpacity={0.45} />
+                    <stop offset="100%" stopColor="#45d99b" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
                 <XAxis dataKey="hour" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
                 <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
-                <Tooltip contentStyle={{ background: "#111827", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 12 }} formatter={(v: any) => `$${v}`} />
+                <Tooltip contentStyle={{ background: "#0c2419", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 12 }} formatter={(v: any) => `$${v}`} />
                 <Area type="monotone" dataKey="ticketed" name="Ticketed" stroke="#f59e0b" fill="url(#ticketedGrad)" strokeWidth={2} />
-                <Area type="monotone" dataKey="collected" name="Collected" stroke="#2483ff" fill="url(#collectedGrad)" strokeWidth={2} />
+                <Area type="monotone" dataKey="collected" name="Collected" stroke="#45d99b" fill="url(#collectedGrad)" strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
