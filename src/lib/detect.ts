@@ -153,8 +153,25 @@ export function requiredMet(kind: DatasetKind, mapping: Mapping): boolean {
 const KIND_ORDER: Exclude<DatasetKind, "unknown">[] = ["payments", "roster", "daily_summary", "daily_activity", "transactions"];
 
 /** Guess the property name from a file name like "2_Harbor-Street-Self-Park_PARCS-Export_Aug10-Oct8.xlsx". */
+const REPORT_WORDS = new Set(("ticket tickets activity retrieval retrievals detail details by date dates and time times xls xlsx csv pdf report reports " +
+  "export exports summary transaction transactions revenue daily weekly monthly valet parcs data the of for from to period " +
+  "roster payments payment history audit log sales list all").split(" "));
+
 export function guessProperty(fileName: string): string {
   const base = fileName.replace(/\.[^.]+$/, "");
+  // Names like "Ticket Activity Detail By Date (xls) Two Rodeo 01 May 2025": drop report words, dates and numbers.
+  if (!base.includes("_")) {
+    const words = base.replace(/[()[\],]/g, " ").split(/\s+/).filter(Boolean);
+    const keep = words.filter((w) => {
+      const lw = w.toLowerCase().replace(/[^a-z0-9]/g, "");
+      if (!lw) return false;
+      if (REPORT_WORDS.has(lw)) return false;
+      if (/^\d+$/.test(lw) || /^\d{1,2}[a-z]{3}\d*$/.test(lw)) return false;
+      if (/^(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*$/.test(lw)) return false;
+      return true;
+    });
+    if (keep.length && keep.length < words.length) return keep.join(" ");
+  }
   const STOP = /\b(valet|tickets?|parcs|export|monthly|daily|activity|report|roster|payments?|transactions?|revenue|summary|data|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\b/i;
   const parts = base.split(/_| — | - |\s+-\s+/).map((p) => p.replace(/[-]+/g, " ").trim()).filter(Boolean);
   for (const p of parts) {

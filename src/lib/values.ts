@@ -22,6 +22,23 @@ export function toNumber(v: Cell): number | null {
   return neg ? -n : n;
 }
 
+/** "2 hrs 21 min", "1h 5m", "02:21", "141" -> minutes */
+export function toMinutes(v: Cell): number | null {
+  if (typeof v === "number") return Number.isFinite(v) ? v : null;
+  if (typeof v !== "string") return null;
+  const s = v.trim().toLowerCase();
+  if (!s) return null;
+  if (/^\d+(\.\d+)?$/.test(s)) return parseFloat(s);
+  let m = s.match(/^(\d+):(\d{2})(?::(\d{2}))?$/);
+  if (m) return +m[1] * 60 + +m[2] + (m[3] ? +m[3] / 60 : 0);
+  let total = 0, found = false;
+  for (const [re, mult] of [[/(\d+(?:\.\d+)?)\s*d(?:ays?)?\b/, 1440], [/(\d+(?:\.\d+)?)\s*h(?:rs?|ours?)?\b/, 60], [/(\d+(?:\.\d+)?)\s*m(?:in(?:ute)?s?)?\b/, 1]] as [RegExp, number][]) {
+    m = s.match(re);
+    if (m) { total += parseFloat(m[1]) * mult; found = true; }
+  }
+  return found ? total : null;
+}
+
 const MONTHS: Record<string, number> = {
   jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12,
 };

@@ -2,7 +2,7 @@ import type {
   Breakdown, BreakdownRow, Cell, DailyPoint, Dataset, Finding, Kpi, MonthlyParker, PropertyReport, Severity,
 } from "./types";
 import {
-  addDays, dayKey, daysBetween, fmtDay, fmtRange, median, money, parseTime, pct, runsOfDays, sum, toNumber,
+  addDays, dayKey, daysBetween, fmtDay, fmtRange, median, money, parseTime, pct, runsOfDays, sum, toMinutes, toNumber,
   toText, toTimestamp, weekday,
 } from "./values";
 
@@ -27,6 +27,7 @@ interface Tx {
   payType: string;
   lane: string;
   staff: string;
+  guestType: string;
   ticketNum: number | null;
   isComp: boolean;
   isVoid: boolean;
@@ -40,7 +41,7 @@ function readTransactions(ds: Dataset): Tx[] {
     ticket: col(ds, "ticket"), entry: col(ds, "entry"), entryTime: col(ds, "entryTime"), exit: col(ds, "exit"),
     amount: col(ds, "amount"), paid: col(ds, "paid"), payType: col(ds, "payType"), lane: col(ds, "lane"),
     staff: col(ds, "staff"), status: col(ds, "status"), compReason: col(ds, "compReason"),
-    validation: col(ds, "validation"), duration: col(ds, "duration"),
+    validation: col(ds, "validation"), duration: col(ds, "duration"), guestType: col(ds, "guestType"),
   };
   const out: Tx[] = [];
   for (const r of ds.rows) {
@@ -59,7 +60,7 @@ function readTransactions(ds: Dataset): Tx[] {
     if (isVoid) revenue = 0;
     const raw = toText(g.ticket(r));
     const digits = raw.match(/(\d+)\s*$/);
-    const dur = toNumber(g.duration(r));
+    const dur = toMinutes(g.duration(r));
     out.push({
       ts,
       day: dayKey(ts),
@@ -68,6 +69,7 @@ function readTransactions(ds: Dataset): Tx[] {
       payType,
       lane: toText(g.lane(r)),
       staff: toText(g.staff(r)),
+      guestType: toText(g.guestType(r)),
       ticketNum: digits ? parseInt(digits[1], 10) : null,
       isComp: /comp/.test(payType) || (!!compReason && revenue === 0),
       isVoid,
@@ -255,11 +257,12 @@ function dips(series: Map<string, number>, what: string, skip: Set<string>, thre
   if (days.length < 21) return [];
   const low: string[] = [];
   const base = new Map<string, number>();
+  const edges = new Set([days[0], days[days.length - 1]]); // exports often cut the first and last day short
   for (const d of days) {
-    const same = days.filter((x) => x !== d && weekday(x) === weekday(d)).map((x) => series.get(x)!);
+    const same = days.filter((x) => x !== d && !edges.has(x) && weekday(x) === weekday(d)).map((x) => series.get(x)!);
     const b = median(same);
     base.set(d, b);
-    if (b > 0 && series.get(d)! < b * threshold && !skip.has(d)) low.push(d);
+    if (b > 0 && series.get(d)! < b * threshold && !skip.has(d) && !edges.has(d)) low.push(d);
   }
   const deep = (d: string) => series.get(d)! < base.get(d)! * (threshold - 0.15);
   return runsOfDays(low).filter((run) => run.length >= 2 || deep(run[0])).map((run) => {
@@ -296,7 +299,7 @@ function spikes(series: Map<string, number>, what: string, category: string): Fi
   });
 }
 
-function breakdown(txs: Tx[], dim: "lane" | "staff" | "payType", title: string, totalRev: number, withComps = false): Breakdown | null {
+function breakdown(txs: Tx[], dim: "lane" | "staff" | "payType" | "guestType", title: string, totalRev: number, withComps = false): Breakdown | null {
   const m = new Map<string, Tx[]>();
   for (const t of txs) {
     const k = dim === "payType" ? (t.payType ? t.payType.replace(/\b\w/g, (c) => c.toUpperCase()) : "") : t[dim];
@@ -350,6 +353,7 @@ function analyzeTransactions(ds: Dataset) {
     breakdown(txs, "lane", "Revenue by lane", totalRev),
     breakdown(txs, "staff", "Revenue by attendant / cashier", totalRev, comps > 0),
     breakdown(txs, "payType", "Revenue by payment type", totalRev),
+    breakdown(txs, "guestType", "Revenue by customer / ticket type", totalRev),
   ].filter((b): b is Breakdown => !!b);
 
   const outages = laneOutages(txs, revSeries);
