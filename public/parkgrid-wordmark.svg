@@ -1,5 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 64" width="300" height="64">
-  <path d="M8 6H30L42 18V30L30 42H19V52H8Z M19 16V32H27L31 28V20L27 16Z" fill="#ffffff" fill-rule="evenodd"/>
-  <rect x="8" y="42" width="11" height="10" fill="#45d99b"/>
-  <text x="58" y="44" font-family="Inter, Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="34" font-weight="800" letter-spacing="1.5" fill="#ffffff">PARK<tspan fill="#45d99b">GRID</tspan></text>
-</svg>

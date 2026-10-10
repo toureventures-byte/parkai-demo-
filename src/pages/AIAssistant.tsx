@@ -135,7 +135,7 @@ export default function AIAssistant() {
           />
           <button
             type="submit"
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-electric-600 text-white shadow-glow transition-colors hover:bg-electric-500"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-electric-200 text-ink shadow-glow transition-colors hover:bg-electric-100"
           >
             <Send className="h-4 w-4" />
           </button>

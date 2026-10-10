@@ -50,7 +50,7 @@ export function Sidebar() {
       )}
     >
       <div className="flex h-16 items-center gap-2.5 px-4">
-        <img src="/parkgrid-mark.svg" alt="ParkGrid" className="h-8 w-8 shrink-0" />
+        <img src="/parkgrid-mark.png" alt="ParkGrid" className="h-8 w-8 shrink-0 object-contain" />
         {!collapsed && (
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-white">ParkGrid</p>

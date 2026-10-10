@@ -9,6 +9,9 @@
   body {
     @apply bg-navy-900 text-slate-200 font-sans antialiased;
   }
+  h1, h2, h3 {
+    @apply font-display;
+  }
   ::selection {
     @apply bg-electric-500/30 text-white;
   }

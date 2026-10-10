@@ -11,7 +11,7 @@ export const property = {
 
 export const company = {
   name: "ParkGrid",
-  tagline: "No Hardware. Just Insight.",
+  tagline: "Intelligence for every parking asset.",
   products: [
     {
       id: "valet",

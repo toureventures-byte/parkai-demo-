@@ -61,7 +61,7 @@ export default function Landing() {
       <header className="sticky top-0 z-30 border-b border-white/[0.06] bg-navy-900/80 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
           <div className="flex items-center">
-            <img src="/parkgrid-wordmark.svg" alt="ParkGrid" className="h-6 w-auto" />
+            <img src="/parkgrid-logo.png" alt="ParkGrid" className="h-6 w-auto" />
           </div>
           <nav className="hidden items-center gap-8 text-sm font-medium text-slate-400 md:flex">
             <a href="#products" className="transition-colors hover:text-white">Products</a>
@@ -74,7 +74,7 @@ export default function Landing() {
             </Link>
             <Link
               to="/login"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-electric-600 px-4 py-2 text-sm font-medium text-white shadow-glow transition-colors hover:bg-electric-500"
+              className="inline-flex items-center gap-1.5 rounded bg-electric-200 px-4 py-2 text-sm font-medium text-ink shadow-glow transition-colors hover:bg-electric-100"
             >
               View Live Demo
               <ArrowRight className="h-3.5 w-3.5" />
@@ -91,16 +91,16 @@ export default function Landing() {
             Now with Ask ParkGrid — ask your parking data anything
           </div>
           <h1 className="mx-auto max-w-4xl text-4xl font-semibold tracking-tight text-white sm:text-6xl">
-            No Hardware. <span className="text-electric-400">Just Insight.</span>
+            Run every parking asset from <span className="text-electric-400">one intelligent platform.</span>
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-400">
-            ParkGrid reads the exports your gate, valet and LPR systems already produce and turns them
-            into dashboards, audits and reports — plus AI-managed monthly parkers. Nothing to install.
+            An intelligent platform for parking visibility, revenue control, monthly subscriptions and
+            connected operations — built on the systems you already run.
           </p>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
             <Link
               to="/login"
-              className="inline-flex items-center gap-2 rounded-lg bg-electric-600 px-6 py-3 text-sm font-semibold text-white shadow-glow transition-colors hover:bg-electric-500"
+              className="inline-flex items-center gap-2 rounded bg-electric-200 px-6 py-3 text-sm font-semibold text-ink shadow-glow transition-colors hover:bg-electric-100"
             >
               Explore the Demo Dashboard
               <ArrowRight className="h-4 w-4" />
@@ -267,7 +267,7 @@ export default function Landing() {
           </p>
           <Link
             to="/login"
-            className="mt-8 inline-flex items-center gap-2 rounded-lg bg-electric-600 px-6 py-3 text-sm font-semibold text-white shadow-glow transition-colors hover:bg-electric-500"
+            className="mt-8 inline-flex items-center gap-2 rounded bg-electric-200 px-6 py-3 text-sm font-semibold text-ink shadow-glow transition-colors hover:bg-electric-100"
           >
             Launch the Demo
             <ArrowRight className="h-4 w-4" />
@@ -278,7 +278,7 @@ export default function Landing() {
       <footer className="border-t border-white/[0.06] py-10">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 text-sm text-slate-600 sm:flex-row">
           <div className="flex items-center gap-2">
-            <img src="/parkgrid-mark.svg" alt="ParkGrid" className="h-5 w-5" />
+            <img src="/parkgrid-mark.png" alt="ParkGrid" className="h-5 w-5 object-contain" />
             ParkGrid © 2026 — Demo environment
           </div>
           <p>{property.fullName}</p>

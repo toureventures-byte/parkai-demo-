@@ -24,7 +24,7 @@ export default function Login() {
       {/* Left / form */}
       <div className="flex flex-col justify-center px-8 py-12 sm:px-16 lg:px-20">
         <Link to="/" className="mb-12 flex items-center">
-          <img src="/parkgrid-wordmark.svg" alt="ParkGrid" className="h-7 w-auto" />
+          <img src="/parkgrid-logo.png" alt="ParkGrid" className="h-7 w-auto" />
         </Link>
 
         <div className="mx-auto w-full max-w-sm">
@@ -65,7 +65,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-electric-600 px-4 py-2.5 text-sm font-semibold text-white shadow-glow transition-colors hover:bg-electric-500 disabled:opacity-70"
+              className="flex w-full items-center justify-center gap-2 rounded bg-electric-200 px-4 py-2.5 text-sm font-semibold text-ink shadow-glow transition-colors hover:bg-electric-100 disabled:opacity-70"
             >
               {loading ? "Signing in…" : "Sign in"}
               {!loading && <ArrowRight className="h-4 w-4" />}
