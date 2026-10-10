@@ -16,7 +16,7 @@ async function callClaude(system, messages, maxTokens) {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      "x-api-key": process.env.ANTHROPIC_API_KEY,
+      "x-api-key": (process.env.ANTHROPIC_API_KEY || "").trim(),
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, system, messages }),
@@ -40,7 +40,7 @@ export default async function handler(req, res) {
     res.status(405).json({ error: "method_not_allowed" });
     return;
   }
-  if (!process.env.ANTHROPIC_API_KEY) {
+  if (!(process.env.ANTHROPIC_API_KEY || "").trim()) {
     res.status(503).json({ error: "not_configured" });
     return;
   }
