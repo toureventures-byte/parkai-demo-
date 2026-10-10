@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
+import { DataProvider } from "./context/DataContext";
 import { AppShell } from "./components/layout/AppShell";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
@@ -11,10 +12,13 @@ import MonthlyUser from "./pages/MonthlyUser";
 import AIAssistant from "./pages/AIAssistant";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
+import UploadData from "./pages/UploadData";
+import Insights from "./pages/Insights";
 
 function App() {
   return (
     <AuthProvider>
+      <DataProvider>
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Landing />} />
@@ -22,6 +26,8 @@ function App() {
 
           <Route path="/app" element={<AppShell />}>
             <Route index element={<Dashboard />} />
+            <Route path="data" element={<UploadData />} />
+            <Route path="insights" element={<Insights />} />
             <Route path="valet" element={<ValetDashboard />} />
             <Route path="self-parking" element={<SelfParkingDashboard />} />
             <Route path="monthly/manager" element={<MonthlyManager />} />
@@ -32,6 +38,7 @@ function App() {
           </Route>
         </Routes>
       </BrowserRouter>
+      </DataProvider>
     </AuthProvider>
   );
 }

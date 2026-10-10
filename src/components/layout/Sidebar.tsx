@@ -8,21 +8,27 @@ import {
   Sparkles,
   FileBarChart,
   Settings,
+  UploadCloud,
+  BarChart3,
   ChevronsLeft,
   ChevronsRight,
 } from "lucide-react";
 import clsx from "clsx";
 import { useState } from "react";
-import { property } from "../../data/property";
 
 const navSections = [
   {
-    label: "Overview",
-    items: [{ to: "/app", label: "Dashboard", icon: LayoutGrid, end: true }],
+    label: "Your data",
+    items: [
+      { to: "/app/data", label: "Upload data", icon: UploadCloud },
+      { to: "/app/insights", label: "Insights & audit", icon: BarChart3 },
+      { to: "/app/assistant", label: "Ask ParkGrid", icon: Sparkles },
+    ],
   },
   {
-    label: "Products",
+    label: "Previews (sample data)",
     items: [
+      { to: "/app", label: "Portfolio overview", icon: LayoutGrid, end: true },
       { to: "/app/valet", label: "Valet", icon: Car },
       { to: "/app/self-parking", label: "Self Parking", icon: ParkingSquare },
       { to: "/app/monthly/manager", label: "Monthly — Manager", icon: Building2 },
@@ -32,7 +38,6 @@ const navSections = [
   {
     label: "Tools",
     items: [
-      { to: "/app/assistant", label: "Ask ParkGrid", icon: Sparkles },
       { to: "/app/reports", label: "Reports", icon: FileBarChart },
       { to: "/app/settings", label: "Settings", icon: Settings },
     ],
@@ -54,7 +59,7 @@ export function Sidebar() {
         {!collapsed && (
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-white">ParkGrid</p>
-            <p className="truncate text-[11px] text-slate-500">{property.name}</p>
+            <p className="truncate text-[11px] text-slate-500">Operator console</p>
           </div>
         )}
       </div>

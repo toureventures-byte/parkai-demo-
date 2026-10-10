@@ -15,7 +15,7 @@ export default function Login() {
     setLoading(true);
     setTimeout(() => {
       login();
-      navigate("/app");
+      navigate("/app/data");
     }, 650);
   }
 
