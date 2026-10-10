@@ -238,6 +238,7 @@ function laneOutages(txs: Tx[], dailyRevenue: Map<string, number>): { findings: 
       if (prev !== null && prev > 0) {
         detail += ` Site revenue those days was ${money(cur)} vs ${money(prev)} the same days a week earlier (${((cur / prev - 1) * 100).toFixed(0)}%).`;
       }
+      detail += ` ${lane} normally takes about ${money(laneRev)} a day, so roughly ${money(laneRev * run.length)} may not have been collected.`;
       findings.push({
         id: newId(), severity: "high", category: "Equipment / revenue loss",
         title: `${lane} recorded ${recorded === 0 ? "nothing" : "almost nothing"} for ${run.length} day${run.length > 1 ? "s" : ""} (${fmtRange(run)})`,
@@ -391,7 +392,7 @@ function analyzeDailySummary(ds: Dataset) {
     const thresh = Math.max(20, 4 * median(vs.map((r) => Math.abs(r.variance!))));
     const flagged = vs.filter((r) => Math.abs(r.variance!) > thresh);
     const net = sum(vs.map((r) => r.variance!));
-    kpis.push({ key: "cashVariance", label: "Cash over / short", value: net, format: "money", sub: `${flagged.length} day${flagged.length === 1 ? "" : "s"} flagged` });
+    kpis.push({ key: "cashVariance", label: "Net cash over / short", value: net, format: "money", sub: `all days; ${flagged.length} day${flagged.length === 1 ? "" : "s"} flagged` });
     const shorts = flagged.filter((r) => r.variance! < 0);
     const byStaff = new Map<string, typeof shorts>();
     for (const r of shorts) if (r.staff) (byStaff.get(r.staff) ?? byStaff.set(r.staff, []).get(r.staff)!).push(r);

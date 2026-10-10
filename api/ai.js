@@ -9,7 +9,7 @@ const SYSTEM_BASE =
   "You only use the data provided in <data>. Never invent numbers, names or dates. " +
   "If the data doesn't answer the question, say so plainly and suggest which export would answer it. " +
   "Write for a busy operations manager: short, specific, numbers and dates first. Use US dollars. " +
-  "No markdown headings or tables. Bullets only for 2+ parallel items.";
+  "No markdown headings, bold or tables. Bullets only for 3+ parallel items. Don't comment on how the audit computed its figures; use them as given.";
 
 async function callClaude(system, messages, maxTokens) {
   const r = await fetch("https://api.anthropic.com/v1/messages", {
@@ -28,7 +28,13 @@ async function callClaude(system, messages, maxTokens) {
     err.status = r.status;
     throw err;
   }
-  return (body.content || []).filter((c) => c.type === "text").map((c) => c.text).join("").trim();
+  const text = (body.content || []).filter((c) => c.type === "text").map((c) => c.text).join("").trim();
+  if (!text) {
+    const err = new Error(`Empty answer (stop_reason: ${body.stop_reason || "unknown"})`);
+    err.status = 502;
+    throw err;
+  }
+  return text;
 }
 
 function str(v, max) {
@@ -54,7 +60,7 @@ export default async function handler(req, res) {
           role: "user",
           content: `<data>\n${facts}\n</data>\n\nWrite "3 things to look at this week" for ${str(b.property, 200)}: exactly 3 lines, each starting with "- ", each under 30 words, most money or risk first. Each line names the problem, the number, and one concrete action. No intro, no closing.`,
         }],
-        400,
+        3000,
       );
       res.status(200).json({ text });
       return;
@@ -70,9 +76,9 @@ export default async function handler(req, res) {
       ];
       if (messages[0]?.role !== "user") messages.shift();
       const text = await callClaude(
-        `${SYSTEM_BASE}\nAnswer in 1-4 sentences unless a list of names is needed. Today is ${str(b.asOf, 20)}.\n<data>\n${facts}\n</data>`,
+        `${SYSTEM_BASE}\nKeep answers under 90 words: lead with the direct answer and the key numbers, then one concrete next step. Lists of names may run longer. Today is ${str(b.asOf, 20)}.\n<data>\n${facts}\n</data>`,
         messages,
-        700,
+        4000,
       );
       res.status(200).json({ text });
       return;
@@ -87,7 +93,7 @@ export default async function handler(req, res) {
             `Possible kinds and their fields:\n${str(b.schema, 20000)}\n\n` +
             'Pick the single best kind and map each field to a column index or null. Reply exactly as {"kind":"<kind or unknown>","mapping":{"<field>":<index or null>}}.',
         }],
-        800,
+        3000,
       );
       let parsed = { kind: "unknown", mapping: {} };
       try {
