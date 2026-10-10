@@ -65,7 +65,7 @@ function MappingTable({ ds }: { ds: Dataset }) {
 }
 
 function DatasetCard({ ds, properties }: { ds: Dataset; properties: string[] }) {
-  const { removeDataset, setKind, setProperty } = useData();
+  const { removeDataset, setKind, setProperty, reimport } = useData();
   const [open, setOpen] = useState(false);
   const ok = requiredMet(ds.kind, ds.mapping);
   const isPdf = ds.source.toLowerCase().endsWith(".pdf");
@@ -112,6 +112,20 @@ function DatasetCard({ ds, properties }: { ds: Dataset; properties: string[] }) 
           />
           <datalist id="pg-properties">{properties.map((p) => <option key={p} value={p} />)}</datalist>
         </label>
+        {(ds.kind === "roster" || ds.kind === "payments") && ok && (
+          ds.importError ? (
+            <span className="flex items-center gap-1 text-rose-300"><AlertTriangle className="h-3.5 w-3.5" /> Couldn't import: {ds.importError}</span>
+          ) : ds.imported ? (
+            <Link to={`/app/monthly?p=${encodeURIComponent(ds.property)}`} className="flex items-center gap-1 text-emerald-300 hover:text-emerald-200">
+              <CheckCircle2 className="h-3.5 w-3.5" /> {ds.imported} parkers imported to Monthly parkers
+            </Link>
+          ) : null
+        )}
+        {(ds.kind === "roster" || ds.kind === "payments") && ok && (ds.mappedBy === "user" || ds.importError || ds.imported === 0) && (
+          <button onClick={() => void reimport(ds.id)} className="text-electric-300 hover:text-electric-200">
+            {ds.imported ? "Re-import with these settings" : "Import to Monthly parkers"}
+          </button>
+        )}
         {!ok && missing.length > 0 && (
           <span className="flex items-center gap-1 text-amber-300"><AlertTriangle className="h-3.5 w-3.5" /> Map: {missing.join(", ")}</span>
         )}

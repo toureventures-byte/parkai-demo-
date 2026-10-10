@@ -29,6 +29,9 @@ export interface Dataset {
   mapping: Mapping;
   confidence: number; // 0..1
   mappedBy: "auto" | "ai" | "user";
+  /** Roster / payment tables are copied into Monthly parkers; this is how many parkers were imported. */
+  imported?: number;
+  importError?: string;
 }
 
 export type Severity = "high" | "medium" | "low";

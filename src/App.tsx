@@ -1,5 +1,6 @@
+import type React from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "./context/AuthContext";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 import { DataProvider } from "./context/DataContext";
 import { AppShell } from "./components/layout/AppShell";
 import Landing from "./pages/Landing";
@@ -14,11 +15,20 @@ import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import UploadData from "./pages/UploadData";
 import Insights from "./pages/Insights";
+import MonthlyParkers from "./pages/MonthlyParkers";
+import SetNewPassword from "./pages/SetNewPassword";
+
+/** After a password-reset link, ask for the new password before anything else. */
+function RecoveryGate({ children }: { children: React.ReactNode }) {
+  const { recovering } = useAuth();
+  return recovering ? <SetNewPassword /> : <>{children}</>;
+}
 
 function App() {
   return (
     <AuthProvider>
       <DataProvider>
+      <RecoveryGate>
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Landing />} />
@@ -28,6 +38,7 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="data" element={<UploadData />} />
             <Route path="insights" element={<Insights />} />
+            <Route path="monthly" element={<MonthlyParkers />} />
             <Route path="valet" element={<ValetDashboard />} />
             <Route path="self-parking" element={<SelfParkingDashboard />} />
             <Route path="monthly/manager" element={<MonthlyManager />} />
@@ -38,6 +49,7 @@ function App() {
           </Route>
         </Routes>
       </BrowserRouter>
+      </RecoveryGate>
       </DataProvider>
     </AuthProvider>
   );

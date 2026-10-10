@@ -4,7 +4,6 @@ import {
   Car,
   ParkingSquare,
   Building2,
-  UserRound,
   Sparkles,
   FileBarChart,
   Settings,
@@ -22,6 +21,7 @@ const navSections = [
     items: [
       { to: "/app/data", label: "Upload data", icon: UploadCloud },
       { to: "/app/insights", label: "Insights & audit", icon: BarChart3 },
+      { to: "/app/monthly", label: "Monthly parkers", icon: Building2 },
       { to: "/app/assistant", label: "Ask ParkGrid", icon: Sparkles },
     ],
   },
@@ -31,8 +31,6 @@ const navSections = [
       { to: "/app", label: "Portfolio overview", icon: LayoutGrid, end: true },
       { to: "/app/valet", label: "Valet", icon: Car },
       { to: "/app/self-parking", label: "Self Parking", icon: ParkingSquare },
-      { to: "/app/monthly/manager", label: "Monthly — Manager", icon: Building2 },
-      { to: "/app/monthly/user", label: "Monthly — Parker App", icon: UserRound },
     ],
   },
   {

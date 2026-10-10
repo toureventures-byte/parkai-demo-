@@ -54,8 +54,7 @@ export function Topbar() {
               <div className="absolute right-0 z-20 mt-2 w-48 overflow-hidden rounded-lg border border-white/[0.08] bg-navy-800 shadow-xl">
                 <button
                   onClick={() => {
-                    logout();
-                    navigate("/login");
+                    void logout().then(() => navigate("/login"));
                   }}
                   className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-sm text-slate-300 transition-colors hover:bg-white/[0.06] hover:text-white"
                 >

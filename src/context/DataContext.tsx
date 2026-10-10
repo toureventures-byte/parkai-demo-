@@ -5,6 +5,8 @@ import { detectDataset, remapAs, requiredMet, FIELDS } from "../lib/detect";
 import { analyzeAll } from "../lib/analyze";
 import { aiMap, aiSummary, autoSummary, AiUnavailableError } from "../lib/ai";
 import { saveFile, removeFile, clearFiles, loadFiles } from "../lib/store";
+import { monthlyStore, rowsFromDatasets, datasetsFromRows, type ParkerRow, type InvoiceRow, type NewParker } from "../lib/monthlyStore";
+import { useAuth } from "./AuthContext";
 
 export type AiStatus = "unknown" | "online" | "offline";
 
@@ -30,6 +32,14 @@ interface DataState {
   clearAll: () => void;
   ensureSummary: (property: string) => void;
   noteAi: (ok: boolean) => void;
+  /** Monthly parkers saved to the account (or this browser in demo mode). */
+  monthly: { parkers: ParkerRow[]; invoices: InvoiceRow[] };
+  monthlyStatus: "idle" | "loading" | "saving" | "error";
+  monthlyError: string;
+  addParker: (p: NewParker) => Promise<void>;
+  removeParker: (id: string) => Promise<void>;
+  markPaid: (parkerId: string, paidDate: string) => Promise<void>;
+  reimport: (datasetId: string) => Promise<void>;
 }
 
 const Ctx = createContext<DataState | null>(null);
@@ -41,20 +51,54 @@ export const SAMPLE_FILES = [
   "4_Midtown-Plaza-Garage_Daily-Activity-Report_Aug10-Oct8.pdf",
 ];
 
+const isMonthlyKind = (d: Dataset) => d.kind === "roster" || d.kind === "payments";
+
 export function DataProvider({ children }: { children: ReactNode }) {
+  const { userId } = useAuth();
   const [datasets, setDatasets] = useState<Dataset[]>([]);
+  const [monthly, setMonthly] = useState<{ parkers: ParkerRow[]; invoices: InvoiceRow[] }>({ parkers: [], invoices: [] });
+  const [monthlyStatus, setMonthlyStatus] = useState<DataState["monthlyStatus"]>("idle");
+  const [monthlyError, setMonthlyError] = useState("");
   const [reading, setReading] = useState<string[]>([]);
   const [errors, setErrors] = useState<{ file: string; message: string }[]>([]);
   const [aiStatus, setAiStatus] = useState<AiStatus>("unknown");
   const [summaries, setSummaries] = useState<Record<string, Summary>>({});
   const aiStatusRef = useRef<AiStatus>("unknown");
+  const requested = useRef(new Set<string>());
 
   const noteAi = useCallback((ok: boolean) => {
     aiStatusRef.current = ok ? "online" : "offline";
     setAiStatus(aiStatusRef.current);
   }, []);
 
-  const reports = useMemo(() => analyzeAll(datasets), [datasets]);
+  const reloadMonthly = useCallback(async () => {
+    if (!userId) return;
+    setMonthlyStatus("loading");
+    try {
+      setMonthly(await monthlyStore.load());
+      setMonthlyStatus("idle");
+      setMonthlyError("");
+    } catch (e) {
+      setMonthlyStatus("error");
+      setMonthlyError(e instanceof Error ? e.message : String(e));
+    }
+  }, [userId]);
+
+  /** Copy uploaded roster / payment tables for one property into Monthly parkers. */
+  const importMonthly = useCallback(async (property: string, tables: Dataset[]): Promise<number> => {
+    const roster = tables.find((d) => d.kind === "roster" && requiredMet(d.kind, d.mapping));
+    const payments = tables.find((d) => d.kind === "payments" && requiredMet(d.kind, d.mapping));
+    const { parkers, invoices } = rowsFromDatasets(property, roster, payments);
+    if (!parkers.length) return 0;
+    await monthlyStore.replaceProperty(property, parkers, invoices);
+    return parkers.length;
+  }, []);
+
+  const analysisSets = useMemo(
+    () => [...datasets.filter((d) => !(isMonthlyKind(d) && d.imported !== undefined)), ...datasetsFromRows(monthly.parkers, monthly.invoices)],
+    [datasets, monthly],
+  );
+  const reports = useMemo(() => analyzeAll(analysisSets), [analysisSets]);
 
   /** Ask the AI to map a file the rules couldn't fully understand. */
   const aiImprove = useCallback(async (ds: Dataset): Promise<Dataset> => {
@@ -85,6 +129,25 @@ export function DataProvider({ children }: { children: ReactNode }) {
         const tables = await readFile(file);
         if (!tables.length) throw new Error("No table found in this file.");
         const detected = await Promise.all(tables.map((t) => aiImprove(detectDataset(t))));
+        const monthlyTables = detected.filter(isMonthlyKind);
+        if (monthlyTables.length) {
+          if (!persist) {
+            // Restored after a refresh: the saved Monthly parkers are the source of truth.
+            monthlyTables.forEach((d) => { d.imported = 0; });
+          } else {
+            setMonthlyStatus("saving");
+            for (const property of new Set(monthlyTables.map((d) => d.property))) {
+              const group = monthlyTables.filter((d) => d.property === property);
+              try {
+                const n = await importMonthly(property, group);
+                group.forEach((d) => { d.imported = n; });
+              } catch (e) {
+                group.forEach((d) => { d.importError = e instanceof Error ? e.message : String(e); });
+              }
+            }
+            await reloadMonthly();
+          }
+        }
         setDatasets((prev) => [...prev.filter((d) => d.source !== file.name), ...detected]);
         if (persist) void saveFile(file);
         setErrors((e) => e.filter((x) => x.file !== file.name));
@@ -94,7 +157,21 @@ export function DataProvider({ children }: { children: ReactNode }) {
         setReading((r) => r.filter((n) => n !== file.name));
       }
     }));
-  }, [aiImprove]);
+  }, [aiImprove, importMonthly, reloadMonthly]);
+
+  // Load this account's monthly parkers; forget the previous account's files when someone else signs in.
+  const lastUser = useRef<string | null>(null);
+  useEffect(() => {
+    if (lastUser.current && lastUser.current !== userId) {
+      setDatasets([]);
+      setSummaries({});
+      requested.current.clear();
+      setMonthly({ parkers: [], invoices: [] });
+      void clearFiles();
+    }
+    lastUser.current = userId;
+    if (userId) void reloadMonthly();
+  }, [userId, reloadMonthly]);
 
   // Restore files saved in this browser after a page refresh.
   const restored = useRef(false);
@@ -114,7 +191,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const update = (id: string, fn: (d: Dataset) => Dataset) => setDatasets((ds) => ds.map((d) => (d.id === id ? fn(d) : d)));
 
-  const requested = useRef(new Set<string>());
   const ensureSummary = useCallback((property: string) => {
     const report = reports.find((r) => r.property === property);
     if (!report) return;
@@ -160,6 +236,34 @@ export function DataProvider({ children }: { children: ReactNode }) {
     clearAll: () => { setDatasets([]); setErrors([]); setSummaries({}); requested.current.clear(); void clearFiles(); },
     ensureSummary,
     noteAi,
+    monthly, monthlyStatus, monthlyError,
+    addParker: async (p) => {
+      setMonthlyStatus("saving");
+      try { await monthlyStore.addParker(p); } finally { await reloadMonthly(); }
+    },
+    removeParker: async (id) => {
+      setMonthlyStatus("saving");
+      try { await monthlyStore.removeParker(id); } finally { await reloadMonthly(); }
+    },
+    markPaid: async (parkerId, paidDate) => {
+      setMonthlyStatus("saving");
+      try { await monthlyStore.markPaid(parkerId, paidDate); } finally { await reloadMonthly(); }
+    },
+    reimport: async (datasetId) => {
+      const ds = datasets.find((d) => d.id === datasetId);
+      if (!ds) return;
+      const group = datasets.filter((d) => isMonthlyKind(d) && d.source === ds.source && d.property === ds.property);
+      setMonthlyStatus("saving");
+      try {
+        const n = await importMonthly(ds.property, group);
+        setDatasets((all) => all.map((d) => (group.some((g) => g.id === d.id) ? { ...d, imported: n, importError: undefined } : d)));
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        setDatasets((all) => all.map((d) => (group.some((g) => g.id === d.id) ? { ...d, importError: msg } : d)));
+      } finally {
+        await reloadMonthly();
+      }
+    },
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
