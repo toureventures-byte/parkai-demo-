@@ -178,7 +178,7 @@ export default function UploadData() {
           ref={input}
           type="file"
           multiple
-          accept=".csv,.xlsx,.xlsm,.pdf,.txt"
+          accept=".csv,.tsv,.txt,.xlsx,.xlsm,.xls,.xlsb,.ods,.pdf,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/pdf"
           className="hidden"
           onChange={(e) => {
             const files = [...(e.target.files ?? [])];

@@ -43,6 +43,47 @@ export async function parseXlsxBuffer(source: string, buf: ArrayBuffer): Promise
   return out;
 }
 
+/**
+ * Older and other spreadsheet formats (.xls, .xlsb, .ods) via SheetJS.
+ * Date cells are rebuilt as UTC dates so the day in the file is the day we report.
+ */
+export async function parseLegacySheetBuffer(source: string, buf: ArrayBuffer): Promise<RawTable[]> {
+  const mod = await import("xlsx");
+  const XLSX = ((mod as unknown as { default?: typeof mod }).default?.read ? (mod as unknown as { default: typeof mod }).default : mod) as typeof mod;
+  const wb = XLSX.read(new Uint8Array(buf), { type: "array", cellDates: false, cellNF: true });
+  const out: RawTable[] = [];
+  for (const name of wb.SheetNames) {
+    const ws = wb.Sheets[name];
+    if (!ws || !ws["!ref"]) continue;
+    const range = XLSX.utils.decode_range(ws["!ref"]);
+    const grid: Cell[][] = [];
+    for (let r = range.s.r; r <= Math.min(range.e.r, range.s.r + 500000); r++) {
+      const row: Cell[] = [];
+      for (let c = range.s.c; c <= range.e.c; c++) {
+        const cell = ws[XLSX.utils.encode_cell({ r, c })];
+        if (!cell || cell.v === undefined || cell.v === null || cell.v === "") {
+          row.push(null);
+        } else if (cell.t === "n" && cell.z && XLSX.SSF.is_date(String(cell.z))) {
+          row.push(new Date(Math.round(((cell.v as number) - 25569) * 86400000)));
+        } else if (cell.t === "d" && cell.v instanceof Date) {
+          const d = cell.v as Date;
+          row.push(new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours(), d.getMinutes(), d.getSeconds())));
+        } else if (cell.t === "b") {
+          row.push(Boolean(cell.v));
+        } else if (cell.t === "n") {
+          row.push(cell.v as number);
+        } else {
+          row.push(String(cell.v));
+        }
+      }
+      grid.push(row);
+    }
+    const t = splitHeader(source, name, grid);
+    if (t && t.rows.length) out.push(t);
+  }
+  return out;
+}
+
 export interface PdfTextItem {
   str: string;
   x: number;
@@ -143,12 +184,13 @@ export class UnsupportedFileError extends Error {}
 export async function readFile(file: File): Promise<RawTable[]> {
   const name = file.name;
   const ext = name.toLowerCase().split(".").pop() ?? "";
-  if (ext === "csv" || ext === "txt" || file.type === "text/csv") return parseCsvText(name, await file.text());
+  if (ext === "csv" || ext === "txt" || ext === "tsv" || file.type === "text/csv") return parseCsvText(name, await file.text());
   if (ext === "xlsx" || ext === "xlsm") return parseXlsxBuffer(name, await file.arrayBuffer());
+  if (ext === "xls" || ext === "xlsb" || ext === "ods") return parseLegacySheetBuffer(name, await file.arrayBuffer());
   if (ext === "pdf") {
     const items = await extractPdfItems(await browserPdfJs(), await file.arrayBuffer());
     return tablesFromPdfItems(name, items);
   }
-  if (ext === "xls") throw new UnsupportedFileError("Old .xls files aren't supported yet. Open it in Excel and save as .xlsx or .csv.");
-  throw new UnsupportedFileError(`ParkGrid can't read .${ext} files yet. Use CSV, Excel (.xlsx) or PDF.`);
+  if (ext === "numbers") throw new UnsupportedFileError("Apple Numbers files can't be read directly. In Numbers, choose File → Export To → Excel or CSV, then upload that.");
+  throw new UnsupportedFileError(`ParkGrid can't read .${ext} files yet. Use CSV, Excel (.xlsx or .xls) or PDF.`);
 }

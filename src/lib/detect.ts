@@ -95,21 +95,27 @@ export const REQUIRED: Record<Exclude<DatasetKind, "unknown">, string[][]> = {
 
 const norm = (s: string) => s.toLowerCase().replace(/[_\-.]+/g, " ").replace(/\s+/g, " ").trim();
 
-function sniff(rows: Cell[][], col: number): Record<ValueType, number> {
+type Sniff = Record<ValueType, number> & { serial: number; dateHeader: boolean };
+
+/** Header words that mean "this column holds dates", used to accept bare Excel date numbers. */
+const DATE_HEADER = /date|time|day|\b(in|out)\b|entry|exit|arriv|depart|due|paid\s*on|start|end|expir|since|period/;
+
+function sniff(rows: Cell[][], col: number, header: string): Sniff {
   const sample = rows.slice(0, 200).map((r) => r[col]).filter((v) => v !== null && v !== "");
   const n = sample.length || 1;
-  let num = 0, date = 0, time = 0;
+  let num = 0, date = 0, time = 0, serial = 0;
   for (const v of sample) {
     if (toNumber(v) !== null && !(v instanceof Date)) num++;
     if (toTimestamp(v) !== null && !(typeof v === "number")) date++;
+    if (typeof v === "number" && v > 32000 && v < 75000) serial++;
     if (parseTime(v as Cell) !== null) time++;
   }
-  return { number: num / n, date: date / n, time: time / n, text: 1, any: 1 };
+  return { number: num / n, date: date / n, time: time / n, text: 1, any: 1, serial: serial / n, dateHeader: DATE_HEADER.test(norm(header)) };
 }
 
-function typeOk(t: ValueType, s: Record<ValueType, number>): boolean {
-  if (t === "number") return s.number > 0.8;
-  if (t === "date") return s.date > 0.8;
+function typeOk(t: ValueType, s: Sniff): boolean {
+  if (t === "number") return s.number > 0.8 && !(s.dateHeader && s.serial > 0.8);
+  if (t === "date") return s.date > 0.8 || (s.dateHeader && s.serial > 0.8);
   if (t === "time") return s.time > 0.8 && s.date < 0.5;
   return true;
 }
@@ -119,7 +125,7 @@ export function mapColumns(kind: Exclude<DatasetKind, "unknown">, headers: strin
   const defs = FIELDS[kind];
   const mapping: Mapping = Object.fromEntries(defs.map((d) => [d.key, null]));
   const used = new Set<number>();
-  const sniffs = headers.map((_, i) => sniff(rows, i));
+  const sniffs = headers.map((h, i) => sniff(rows, i, h));
   let score = 0;
   // Pass by pattern priority: earlier patterns are stronger.
   for (let p = 0; p < 4; p++) {
