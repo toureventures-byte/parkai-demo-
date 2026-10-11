@@ -1,12 +1,7 @@
 import { NavLink } from "react-router-dom";
 import {
-  LayoutGrid,
-  Car,
-  ParkingSquare,
   Building2,
   Sparkles,
-  FileBarChart,
-  Settings,
   UploadCloud,
   BarChart3,
   ChevronsLeft,
@@ -23,21 +18,6 @@ const navSections = [
       { to: "/app/insights", label: "Insights & audit", icon: BarChart3 },
       { to: "/app/monthly", label: "Monthly parkers", icon: Building2 },
       { to: "/app/assistant", label: "Ask ParkGrid", icon: Sparkles },
-    ],
-  },
-  {
-    label: "Previews (sample data)",
-    items: [
-      { to: "/app", label: "Portfolio overview", icon: LayoutGrid, end: true },
-      { to: "/app/valet", label: "Valet", icon: Car },
-      { to: "/app/self-parking", label: "Self Parking", icon: ParkingSquare },
-    ],
-  },
-  {
-    label: "Tools",
-    items: [
-      { to: "/app/reports", label: "Reports", icon: FileBarChart },
-      { to: "/app/settings", label: "Settings", icon: Settings },
     ],
   },
 ];
@@ -75,7 +55,6 @@ export function Sidebar() {
                 <NavLink
                   key={item.to}
                   to={item.to}
-                  end={"end" in item ? item.end : false}
                   className={({ isActive }) =>
                     clsx(
                       "flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors",

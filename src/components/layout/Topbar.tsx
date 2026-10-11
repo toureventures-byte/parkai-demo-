@@ -1,4 +1,4 @@
-import { Bell, ChevronDown, LogOut, Search } from "lucide-react";
+import { ChevronDown, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
@@ -14,14 +14,6 @@ export function Topbar() {
   return (
     <header className="sticky top-0 z-20 flex h-16 items-center justify-between gap-4 border-b border-white/[0.06] bg-navy-900/80 px-6 backdrop-blur-md">
       <div className="flex min-w-0 items-center gap-3">
-        <div className="relative hidden w-72 items-center sm:flex">
-          <Search className="pointer-events-none absolute left-3 h-4 w-4 text-slate-500" />
-          <input
-            type="text"
-            placeholder="Search tickets, accounts, plates…"
-            className="w-full rounded-lg border border-white/[0.06] bg-white/[0.03] py-2 pl-9 pr-3 text-sm text-slate-200 placeholder:text-slate-500 focus:border-electric-500/50 focus:outline-none focus:ring-1 focus:ring-electric-500/50"
-          />
-        </div>
       </div>
 
       <div className="flex items-center gap-3">
@@ -30,10 +22,6 @@ export function Topbar() {
           {reports.length ? `${reports.length} propert${reports.length > 1 ? "ies" : "y"} loaded` : "No data loaded yet"}
         </div>
 
-        <button className="relative flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-white/[0.06] hover:text-white">
-          <Bell className="h-4.5 w-4.5" />
-          <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-electric-400" />
-        </button>
 
         <div className="relative">
           <button

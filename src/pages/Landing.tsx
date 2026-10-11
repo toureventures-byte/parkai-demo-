@@ -1,188 +1,145 @@
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
-  Car,
-  ParkingSquare,
-  Building2,
-  CheckCircle2,
-  Sparkles,
-  Gauge,
+  UploadCloud,
   ShieldCheck,
-  Zap,
+  Building2,
+  FileText,
+  Sparkles,
+  BarChart3,
+  CheckCircle2,
 } from "lucide-react";
-import { property } from "../data/property";
 
-const products = [
+const steps = [
+  { icon: UploadCloud, title: "Upload the exports you already have", body: "CSV, Excel or PDF from your gate, valet, LPR or billing system. No hardware, no integration project." },
+  { icon: ShieldCheck, title: "ParkGrid audits every file", body: "It recognizes each report, maps the columns, and checks for missing tickets, cash shortages, comp abuse, lane outages and more." },
+  { icon: FileText, title: "Get answers you can act on", body: "Dashboards, a one-click PDF report, flagged monthly parkers, and plain-English answers from Ask ParkGrid." },
+];
+
+const modules = [
   {
-    icon: Car,
-    name: "ParkGrid Valet",
-    color: "text-electric-400",
-    bg: "bg-electric-500/10",
-    ring: "ring-electric-500/20",
-    description:
-      "AI-powered valet operations dashboard. Track check-ins, tickets, keys, attendants, VIPs, incidents, and revenue reconciliation — all in real time.",
-    points: ["Live vehicle queue & ticket tracking", "Revenue reconciliation & leakage detection", "VIP recognition and incident logging"],
-  },
-  {
-    icon: ParkingSquare,
-    name: "ParkGrid Self Parking",
-    color: "text-emerald-400",
-    bg: "bg-emerald-500/10",
-    ring: "ring-emerald-500/20",
-    description:
-      "Connects directly to gate/arm systems or CSV uploads to automate transient revenue, validations, occupancy, and exception reporting.",
-    points: ["Direct gate & arm system integration", "Automated DCRs and revenue summaries", "Validation tracking & exception logs"],
+    icon: BarChart3,
+    name: "Dashboards & audit",
+    description: "Revenue, transactions, average ticket, comps, validations and occupancy by day, lane, attendant and customer type.",
+    points: ["Missing ticket numbers", "Cash variance by cashier", "Comp, void and lost-ticket outliers", "Lane outages and revenue dips", "Validation spikes"],
   },
   {
     icon: Building2,
-    name: "ParkGrid Monthly",
-    color: "text-violet-400",
-    bg: "bg-violet-500/10",
-    ring: "ring-violet-500/20",
-    description:
-      "Monthly parking automation with a Manager app and a Parker app, wired directly into gate access control for subscriptions.",
-    points: ["Manager app for approvals & billing", "Parker app for self-service accounts", "Automated access control at the gate"],
+    name: "Monthly parkers",
+    description: "Import your roster and payment history, or add parkers by hand. ParkGrid flags who needs attention and why.",
+    points: ["Past due with access still active", "Late this month and repeat late payers", "Partial payments", "Contracts ending in 30 days", "Mark paid, add and remove"],
+  },
+  {
+    icon: Sparkles,
+    name: "Ask ParkGrid",
+    description: "Ask questions in plain English and get short, specific answers drawn only from your own data.",
+    points: ["\"Is any cash missing?\"", "\"Why was revenue down last weekend?\"", "\"Who hasn't paid this month?\"", "\"Which attendant comps the most?\""],
   },
 ];
 
-const trustLogos = ["Meridian Plaza", "Related Companies", "Brookfield Properties", "Irvine Company", "Simon Property Group", "Hudson Pacific"];
-
-const stats = [
-  { value: "312+", label: "Properties running ParkGrid" },
-  { value: "4.6M", label: "Vehicles processed / year" },
-  { value: "$2.4M+", label: "Revenue leakage flagged annually" },
-  { value: "99.98%", label: "Gate system uptime" },
+const sampleFindings = [
+  { tone: "bg-rose-500/15 text-rose-300", label: "High", text: "Exit 2 recorded no transactions for 3 days", amount: "$5,498" },
+  { tone: "bg-rose-500/15 text-rose-300", label: "High", text: "$1,190 cash short across 5 Sundays, same closing cashier", amount: "$1,190" },
+  { tone: "bg-rose-500/15 text-rose-300", label: "High", text: "2 monthly parkers 45+ days past due, cards still active", amount: "$1,110" },
+  { tone: "bg-amber-500/15 text-amber-300", label: "Medium", text: "Validations tripled for a week at one garage", amount: "$2,116" },
 ];
 
 export default function Landing() {
   return (
     <div className="min-h-screen bg-navy-900 text-slate-200">
-      {/* Nav */}
       <header className="sticky top-0 z-30 border-b border-white/[0.06] bg-navy-900/80 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
-          <div className="flex items-center">
-            <img src="/parkgrid-logo.png" alt="ParkGrid" className="h-6 w-auto" />
-          </div>
+          <img src="/parkgrid-logo.png" alt="ParkGrid" className="h-6 w-auto" />
           <nav className="hidden items-center gap-8 text-sm font-medium text-slate-400 md:flex">
-            <a href="#products" className="transition-colors hover:text-white">Products</a>
-            <a href="#platform" className="transition-colors hover:text-white">Platform</a>
-            <a href="#stats" className="transition-colors hover:text-white">Results</a>
+            <a href="#how" className="transition-colors hover:text-white">How it works</a>
+            <a href="#product" className="transition-colors hover:text-white">What you get</a>
           </nav>
           <div className="flex items-center gap-3">
-            <Link to="/login" className="text-sm font-medium text-slate-300 transition-colors hover:text-white">
-              Sign in
-            </Link>
-            <Link
-              to="/login"
-              className="inline-flex items-center gap-1.5 rounded bg-electric-200 px-4 py-2 text-sm font-medium text-ink shadow-glow transition-colors hover:bg-electric-100"
-            >
-              View Live Demo
-              <ArrowRight className="h-3.5 w-3.5" />
+            <Link to="/login" className="text-sm font-medium text-slate-300 transition-colors hover:text-white">Sign in</Link>
+            <Link to="/login?mode=signup" className="inline-flex items-center gap-1.5 rounded bg-electric-200 px-4 py-2 text-sm font-medium text-ink shadow-glow transition-colors hover:bg-electric-100">
+              Try it free <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
         </div>
       </header>
 
-      {/* Hero */}
       <section className="relative overflow-hidden bg-grid-glow">
-        <div className="mx-auto max-w-7xl px-6 pb-24 pt-20 text-center">
-          <div className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-electric-500/20 bg-electric-500/10 px-3 py-1 text-xs font-medium text-electric-300">
-            <Sparkles className="h-3.5 w-3.5" />
-            Now with Ask ParkGrid — ask your parking data anything
-          </div>
+        <div className="mx-auto max-w-7xl px-6 pb-20 pt-20 text-center">
           <h1 className="mx-auto max-w-4xl text-4xl font-semibold tracking-tight text-white sm:text-6xl">
             Run every parking asset from <span className="text-electric-400">one intelligent platform.</span>
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-400">
-            An intelligent platform for parking visibility, revenue control, monthly subscriptions and
-            connected operations — built on the systems you already run.
+            Upload the exports your systems already produce. ParkGrid turns them into dashboards, audits every file for
+            lost revenue, and keeps your monthly parkers in line. Nothing to install.
           </p>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
-            <Link
-              to="/login"
-              className="inline-flex items-center gap-2 rounded bg-electric-200 px-6 py-3 text-sm font-semibold text-ink shadow-glow transition-colors hover:bg-electric-100"
-            >
-              Explore the Demo Dashboard
-              <ArrowRight className="h-4 w-4" />
+            <Link to="/login?mode=signup" className="inline-flex items-center gap-2 rounded bg-electric-200 px-6 py-3 text-sm font-semibold text-ink shadow-glow transition-colors hover:bg-electric-100">
+              Try it with sample data <ArrowRight className="h-4 w-4" />
             </Link>
-            <a
-              href="#products"
-              className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-6 py-3 text-sm font-semibold text-slate-200 transition-colors hover:bg-white/[0.06]"
-            >
-              See how it works
+            <a href="#how" className="inline-flex items-center gap-2 rounded border border-white/10 bg-white/[0.03] px-6 py-3 text-sm font-semibold text-slate-200 transition-colors hover:bg-white/[0.06]">
+              How it works
             </a>
           </div>
 
-          {/* Product preview mock */}
-          <div className="relative mx-auto mt-16 max-w-5xl">
+          <div className="relative mx-auto mt-16 max-w-3xl text-left">
             <div className="absolute -inset-x-10 -top-10 h-72 bg-electric-500/10 blur-3xl" />
-            <div className="relative rounded-2xl border border-white/10 bg-navy-800/80 p-3 shadow-2xl backdrop-blur">
-              <div className="flex items-center gap-1.5 border-b border-white/[0.06] px-3 pb-3">
-                <span className="h-2.5 w-2.5 rounded-full bg-rose-400/60" />
-                <span className="h-2.5 w-2.5 rounded-full bg-amber-400/60" />
-                <span className="h-2.5 w-2.5 rounded-full bg-emerald-400/60" />
-                <span className="ml-3 text-xs text-slate-500">app.getparkgrid.com/meridian-plaza</span>
+            <div className="relative rounded-2xl border border-white/10 bg-navy-800/80 p-5 shadow-2xl backdrop-blur">
+              <div className="mb-4 flex items-center justify-between">
+                <p className="text-sm font-semibold text-white">Audit findings</p>
+                <span className="rounded-full bg-white/[0.05] px-2.5 py-1 text-[11px] text-slate-400">Sample data · 3 properties</span>
               </div>
-              <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-4">
-                {[
-                  { label: "Vehicles On-Site", value: "353", tone: "text-electric-400" },
-                  { label: "Revenue Today", value: "$2,145", tone: "text-emerald-400" },
-                  { label: "Occupancy", value: "79%", tone: "text-violet-400" },
-                  { label: "Active Alerts", value: "2", tone: "text-amber-400" },
-                ].map((s) => (
-                  <div key={s.label} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 text-left">
-                    <p className="text-[11px] uppercase tracking-wide text-slate-500">{s.label}</p>
-                    <p className={`mt-2 text-xl font-semibold ${s.tone}`}>{s.value}</p>
-                  </div>
+              <ul className="divide-y divide-white/[0.05]">
+                {sampleFindings.map((f) => (
+                  <li key={f.text} className="flex items-center gap-3 py-3">
+                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${f.tone}`}>{f.label}</span>
+                    <span className="flex-1 text-sm text-slate-200">{f.text}</span>
+                    <span className="text-sm font-semibold text-white">{f.amount}</span>
+                  </li>
                 ))}
-              </div>
+              </ul>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Trust logos */}
-      <section className="border-y border-white/[0.06] bg-navy-950/60 py-8">
+      <section id="how" className="border-y border-white/[0.06] bg-navy-950/50 py-24">
         <div className="mx-auto max-w-7xl px-6">
-          <p className="mb-5 text-center text-xs font-medium uppercase tracking-widest text-slate-600">
-            Trusted by premier properties and operators
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-4">
-            {trustLogos.map((logo) => (
-              <span key={logo} className="text-sm font-semibold text-slate-500">{logo}</span>
-            ))}
+          <div className="mx-auto mb-14 max-w-2xl text-center">
+            <p className="text-xs font-semibold uppercase tracking-wider text-electric-400">How it works</p>
+            <h2 className="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">From export to answer in minutes</h2>
           </div>
+          <ol className="grid grid-cols-1 gap-6 md:grid-cols-3">
+            {steps.map((s, i) => (
+              <li key={s.title} className="rounded-2xl border border-white/[0.06] bg-navy-800/50 p-7">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-electric-500/15 text-sm font-semibold text-electric-300">{i + 1}</span>
+                  <s.icon className="h-5 w-5 text-electric-400" />
+                </div>
+                <h3 className="mt-5 text-lg font-semibold text-white">{s.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-slate-400">{s.body}</p>
+              </li>
+            ))}
+          </ol>
         </div>
       </section>
 
-      {/* Products */}
-      <section id="products" className="mx-auto max-w-7xl px-6 py-24">
+      <section id="product" className="mx-auto max-w-7xl px-6 py-24">
         <div className="mx-auto mb-14 max-w-2xl text-center">
-          <p className="text-xs font-semibold uppercase tracking-wider text-electric-400">Three products, one platform</p>
-          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-            Everything a parking operation needs
-          </h2>
-          <p className="mt-4 text-slate-400">
-            Whether it's valet, transient self-parking, or monthly subscribers — ParkGrid automates
-            the operational grind so your team can focus on the guest experience.
-          </p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-electric-400">What you get</p>
+          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">Built for valet, self-park and monthly operations</h2>
         </div>
-
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {products.map((p) => (
-            <div
-              key={p.name}
-              className="group rounded-2xl border border-white/[0.06] bg-navy-800/50 p-7 transition-colors hover:border-white/[0.12]"
-            >
-              <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${p.bg} ring-1 ring-inset ${p.ring}`}>
-                <p.icon className={`h-5 w-5 ${p.color}`} />
+          {modules.map((m) => (
+            <div key={m.name} className="rounded-2xl border border-white/[0.06] bg-navy-800/50 p-7">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-electric-500/10 ring-1 ring-inset ring-electric-500/20">
+                <m.icon className="h-5 w-5 text-electric-400" />
               </div>
-              <h3 className="mt-5 text-lg font-semibold text-white">{p.name}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-slate-400">{p.description}</p>
+              <h3 className="mt-5 text-lg font-semibold text-white">{m.name}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-slate-400">{m.description}</p>
               <ul className="mt-5 space-y-2.5">
-                {p.points.map((pt) => (
+                {m.points.map((pt) => (
                   <li key={pt} className="flex items-start gap-2 text-sm text-slate-300">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-slate-600" />
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-electric-500/70" />
                     {pt}
                   </li>
                 ))}
@@ -192,96 +149,30 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Platform features */}
-      <section id="platform" className="border-t border-white/[0.06] bg-navy-950/40 py-24">
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="grid grid-cols-1 items-center gap-16 lg:grid-cols-2">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-electric-400">The platform</p>
-              <h2 className="mt-2 text-3xl font-semibold tracking-tight text-white">
-                One AI layer across every parking workflow
-              </h2>
-              <p className="mt-4 text-slate-400">
-                Ask ParkGrid sits on top of every product — surfacing insights, drafting reports,
-                and answering operational questions in plain English.
-              </p>
-              <div className="mt-8 space-y-6">
-                {[
-                  { icon: Gauge, title: "Real-time operations", body: "Live dashboards for valet queues, gate transactions, and monthly account health." },
-                  { icon: Zap, title: "Automated reporting", body: "DCRs, revenue summaries, validation reports, and exception logs generate themselves." },
-                  { icon: ShieldCheck, title: "Access control built in", body: "Gate and arm integrations keep monthly access, validations, and exceptions in sync automatically." },
-                ].map((f) => (
-                  <div key={f.title} className="flex gap-4">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-electric-500/10 ring-1 ring-inset ring-electric-500/20">
-                      <f.icon className="h-4.5 w-4.5 text-electric-400" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-semibold text-white">{f.title}</h4>
-                      <p className="mt-1 text-sm text-slate-400">{f.body}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-navy-800/60 p-6 shadow-2xl">
-              <div className="mb-4 flex items-center gap-2 text-xs text-slate-500">
-                <Sparkles className="h-3.5 w-3.5 text-electric-400" />
-                Ask ParkGrid
-              </div>
-              <div className="space-y-3">
-                <div className="ml-auto max-w-[80%] rounded-xl rounded-tr-sm bg-electric-600/90 px-4 py-2.5 text-sm text-white">
-                  Why is $151 in valet revenue flagged today?
-                </div>
-                <div className="max-w-[85%] rounded-xl rounded-tl-sm border border-white/[0.06] bg-white/[0.03] px-4 py-2.5 text-sm text-slate-300">
-                  An $18 cash drawer shortage and a comp ticket issued without manager
-                  override — both still pending sign-off. Reconciliation rate today is
-                  93.4%, in line with your 30-day average.
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Stats */}
-      <section id="stats" className="mx-auto max-w-7xl px-6 py-24">
-        <div className="grid grid-cols-2 gap-8 lg:grid-cols-4">
-          {stats.map((s) => (
-            <div key={s.label} className="text-center">
-              <p className="text-4xl font-semibold tracking-tight text-white">{s.value}</p>
-              <p className="mt-2 text-sm text-slate-500">{s.label}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* CTA */}
       <section className="border-t border-white/[0.06] bg-navy-950/60 py-24">
         <div className="mx-auto max-w-3xl px-6 text-center">
-          <h2 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-            See ParkGrid running Meridian Plaza
-          </h2>
+          <h2 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">See what your own exports are hiding</h2>
           <p className="mt-4 text-slate-400">
-            Explore a fully interactive demo of the valet, self-parking, and monthly parking
-            dashboards — populated with realistic operations data.
+            Create a free account, load the sample data in one click, or upload last month's exports from one of your locations.
           </p>
-          <Link
-            to="/login"
-            className="mt-8 inline-flex items-center gap-2 rounded bg-electric-200 px-6 py-3 text-sm font-semibold text-ink shadow-glow transition-colors hover:bg-electric-100"
-          >
-            Launch the Demo
-            <ArrowRight className="h-4 w-4" />
-          </Link>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            <Link to="/login?mode=signup" className="inline-flex items-center gap-2 rounded bg-electric-200 px-6 py-3 text-sm font-semibold text-ink shadow-glow transition-colors hover:bg-electric-100">
+              Create a free account <ArrowRight className="h-4 w-4" />
+            </Link>
+            <a href="https://getparkgrid.com" className="inline-flex items-center gap-2 rounded border border-white/10 bg-white/[0.03] px-6 py-3 text-sm font-semibold text-slate-200 transition-colors hover:bg-white/[0.06]">
+              Talk to us
+            </a>
+          </div>
         </div>
       </section>
 
       <footer className="border-t border-white/[0.06] py-10">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 text-sm text-slate-600 sm:flex-row">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 text-sm text-slate-500 sm:flex-row">
           <div className="flex items-center gap-2">
-            <img src="/parkgrid-mark.png" alt="ParkGrid" className="h-5 w-5 object-contain" />
-            ParkGrid © 2026 — Demo environment
+            <img src="/parkgrid-mark.png" alt="" className="h-5 w-5 object-contain" />
+            ParkGrid © 2026 · Intelligence for every parking asset
           </div>
-          <p>{property.fullName}</p>
+          <a href="https://getparkgrid.com" className="hover:text-slate-300">getparkgrid.com</a>
         </div>
       </footer>
     </div>
