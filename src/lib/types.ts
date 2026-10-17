@@ -6,12 +6,15 @@ export interface RawTable {
   sheet: string; // sheet name, or "Page table" for PDFs
   headers: string[];
   rows: Cell[][];
+  /** Property name found inside the file (e.g. a "Car park:" line), preferred over the file name. */
+  propertyHint?: string;
 }
 
 export type DatasetKind =
   | "transactions"
   | "daily_summary"
   | "daily_activity"
+  | "traffic"
   | "roster"
   | "payments"
   | "unknown";
@@ -63,6 +66,8 @@ export interface DailyPoint {
   transactions?: number;
   validations?: number;
   occupancy?: number;
+  entries?: number;
+  exits?: number;
 }
 
 export interface BreakdownRow {
@@ -75,6 +80,8 @@ export interface BreakdownRow {
 
 export interface Breakdown {
   title: string;
+  /** Counts only (e.g. entries by hour): show the count column, no revenue. */
+  countLabel?: string;
   dimension: string;
   rows: BreakdownRow[];
 }

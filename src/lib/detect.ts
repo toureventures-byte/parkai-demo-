@@ -47,6 +47,13 @@ export const FIELDS: Record<Exclude<DatasetKind, "unknown">, FieldDef[]> = {
     f("revenue", "Revenue", "number", /revenue|sales|gross|collected/),
     f("occupancy", "Occupancy %", "number", /occ(upancy)?/),
   ],
+  traffic: [
+    f("date", "Date", "date", /^(date|day|business\s*date)$/),
+    f("hour", "Hour", "any", /^(hour|time|interval|time\s*slot|hour\s*of\s*day)$/),
+    f("entries", "Entries", "number", /^(entries|entry\s*count|ins?|cars\s*in|total\s*entries|entrances?|vehicles\s*in)$/),
+    f("exits", "Exits", "number", /^(exits|exit\s*count|outs?|cars\s*out|total\s*exits|vehicles\s*out)$/),
+    f("lane", "Lane / gate", "text", /^(lane|gate|device|terminal)$/),
+  ],
   roster: [
     f("parkerId", "Parker ID", "text", /^(parker|account|member|customer|permit)\s*(id|#|no|number)$/, /^id$/),
     f("name", "Name", "text", /^(name|parker(\s*name)?|full\s*name|customer(\s*name)?|tenant)$/),
@@ -79,6 +86,7 @@ export const KIND_LABELS: Record<DatasetKind, string> = {
   transactions: "Parking transactions",
   daily_summary: "Daily revenue / cash summary",
   daily_activity: "Daily activity report",
+  traffic: "Entries & exits (car counts)",
   roster: "Monthly parker roster",
   payments: "Monthly payment history",
   unknown: "Not recognized",
@@ -89,6 +97,7 @@ export const REQUIRED: Record<Exclude<DatasetKind, "unknown">, string[][]> = {
   transactions: [["entry"], ["amount", "paid"]],
   daily_summary: [["date"], ["revenue", "cashExpected", "cashDeposited", "variance"]],
   daily_activity: [["date"], ["validations", "occupancy", "transientEntries", "monthlyEntries"]],
+  traffic: [["date"], ["entries", "exits"]],
   roster: [["name", "parkerId"], ["rate", "plate", "vehicle", "card"]],
   payments: [["parkerId", "name", "invoice"], ["dueDate", "period"], ["paid", "paidDate"]],
 };
@@ -150,7 +159,7 @@ export function requiredMet(kind: DatasetKind, mapping: Mapping): boolean {
   return REQUIRED[kind].every((alts) => alts.some((k) => mapping[k] !== null && mapping[k] !== undefined));
 }
 
-const KIND_ORDER: Exclude<DatasetKind, "unknown">[] = ["payments", "roster", "daily_summary", "daily_activity", "transactions"];
+const KIND_ORDER: Exclude<DatasetKind, "unknown">[] = ["payments", "roster", "daily_summary", "daily_activity", "traffic", "transactions"];
 
 /** Guess the property name from a file name like "2_Harbor-Street-Self-Park_PARCS-Export_Aug10-Oct8.xlsx". */
 const REPORT_WORDS = new Set(("ticket tickets activity retrieval retrievals detail details by date dates and time times xls xlsx csv pdf report reports " +
@@ -206,7 +215,7 @@ export function detectDataset(t: RawTable): Dataset {
     id: `ds${++counter}-${Date.now().toString(36)}`,
     source: t.source,
     sheet: t.sheet,
-    property: guessProperty(t.source),
+    property: t.propertyHint || guessProperty(t.source),
     kind,
     headers: t.headers,
     rows: t.rows,

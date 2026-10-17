@@ -1,8 +1,80 @@
 import Papa from "papaparse";
 import type { Cell, RawTable } from "./types";
 
+const filled = (c: Cell) => c !== null && c !== undefined && c !== "";
+const isLabel = (c: Cell) => typeof c === "string" && /^[A-Za-z][A-Za-z0-9 /#.&'()-]{0,40}:$/.test(c.trim());
+const TOTAL_ROW = /^(grand\s*)?(sub)?totals?\b|^sum$/i;
+const PROPERTY_LABEL = /^(car\s*park|garage|facility|property|location|site|lot|installation)$/i;
+
+/**
+ * Printed-style reports (Crystal, PARCS "by hour" reports…) repeat a block per day:
+ *   "Date:  08/01/26"  then a header row, data rows, a "Total" row, and the next block.
+ * Turn that into one flat table, with the block labels ("Date", "Car park") as extra columns.
+ */
+export function flattenGroupedReport(grid: Cell[][]): { headers: string[]; rows: Cell[][]; propertyHint?: string } | null {
+  const rows = grid.filter((r) => r && r.some(filled));
+  // "Label:" rows with exactly one value.
+  const labelOf = (r: Cell[]): [string, Cell] | null => {
+    const cells = r.filter(filled);
+    if (cells.length !== 2 || !isLabel(cells[0])) return null;
+    return [String(cells[0]).trim().replace(/:$/, "").trim(), cells[1]];
+  };
+  // The repeated header row: same text signature appearing 2+ times, with 2+ text cells.
+  const sig = (r: Cell[]) => r.map((c) => (typeof c === "string" && !/^[-$\d.,%/: ]+$/.test(c) ? c.trim().toLowerCase() : filled(c) ? "#" : "")).join("|");
+  const counts = new Map<string, number>();
+  for (const r of rows) {
+    if (labelOf(r)) continue;
+    const texts = r.filter((c) => typeof c === "string" && c.trim() && !/^[-$\d.,%/: ]+$/.test(c));
+    if (texts.length < 2 || texts.length !== r.filter(filled).length) continue;
+    const k = sig(r);
+    counts.set(k, (counts.get(k) ?? 0) + 1);
+  }
+  const [hsig, hcount] = [...counts.entries()].sort((a, b) => b[1] - a[1])[0] ?? ["", 0];
+  if (hcount < 2) return null;
+  const labelCounts = new Map<string, number>();
+  for (const r of rows) {
+    const l = labelOf(r);
+    if (l) labelCounts.set(l[0], (labelCounts.get(l[0]) ?? 0) + 1);
+  }
+  const ctxLabels = [...labelCounts.entries()].filter(([, n]) => n >= 2).map(([k]) => k);
+  if (!ctxLabels.length) return null;
+
+  const headerRow = rows.find((r) => sig(r) === hsig)!;
+  const width = Math.max(...rows.map((r) => r.length));
+  const ctx = new Map<string, Cell>();
+  let started = false;
+  const body: Cell[][] = [];
+  for (const r of rows) {
+    const l = labelOf(r);
+    if (l) {
+      if (ctxLabels.includes(l[0])) ctx.set(l[0], l[1]);
+      continue;
+    }
+    if (sig(r) === hsig) { started = true; continue; }
+    if (!started) continue;
+    if (r.some((c) => typeof c === "string" && TOTAL_ROW.test(c.trim()))) continue;
+    if (r.filter(filled).length < 2) continue; // page numbers, footers
+    body.push([...ctxLabels.map((k) => ctx.get(k) ?? null), ...Array.from({ length: width }, (_, i) => (filled(r[i]) ? r[i] : null))]);
+  }
+  if (body.length < 2) return null;
+  let headers = [...ctxLabels, ...Array.from({ length: width }, (_, i) => String(headerRow[i] ?? "").trim())];
+  // Drop columns that are empty everywhere (printed reports pad with blank columns).
+  const keep = headers.map((h, i) => i < ctxLabels.length || !!h || body.some((r) => filled(r[i])));
+  headers = headers.filter((_, i) => keep[i]).map((h, i) => h || `Column ${i + 1}`);
+  const out = body.map((r) => r.filter((_, i) => keep[i]));
+  // Property name from a "Car park:" / "Facility:" style label anywhere in the report.
+  let propertyHint: string | undefined;
+  for (const r of rows) {
+    const l = labelOf(r);
+    if (l && PROPERTY_LABEL.test(l[0]) && typeof l[1] === "string" && l[1].trim()) { propertyHint = l[1].trim(); break; }
+  }
+  return { headers, rows: out, propertyHint };
+}
+
 /** Pick the header row: the first row (in the top 15) with 2+ text cells that is followed by data. */
 function splitHeader(source: string, sheet: string, grid: Cell[][]): RawTable | null {
+  const grouped = flattenGroupedReport(grid);
+  if (grouped) return { source, sheet, headers: grouped.headers, rows: grouped.rows, propertyHint: grouped.propertyHint };
   const rows = grid.filter((r) => r.some((c) => c !== null && c !== ""));
   if (rows.length < 2) return null;
   let hi = 0;
