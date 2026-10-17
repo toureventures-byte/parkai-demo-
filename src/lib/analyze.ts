@@ -1,5 +1,5 @@
 import type {
-  Breakdown, BreakdownRow, Cell, DailyPoint, Dataset, Finding, Kpi, MonthlyParker, PropertyReport, Severity,
+  Breakdown, BreakdownRow, Cell, SiteInfo, DailyPoint, Dataset, Finding, Kpi, MonthlyParker, PropertyReport, Severity,
 } from "./types";
 import {
   addDays, dayKey, daysBetween, fmtDay, fmtRange, median, money, parseTime, pct, runsOfDays, sum, toMinutes, toNumber,
@@ -497,7 +497,7 @@ function hourOf(v: Cell): number | null {
 
 const hourLabel = (h: number) => `${h === 0 ? 12 : h > 12 ? h - 12 : h} ${h < 12 ? "AM" : "PM"}`;
 
-function analyzeTraffic(ds: Dataset) {
+function analyzeTraffic(ds: Dataset, site: SiteInfo = {}) {
   const g = { date: col(ds, "date"), hour: col(ds, "hour"), en: col(ds, "entries"), ex: col(ds, "exits") };
   const days = new Map<string, { en: number; ex: number; hours: Map<number, { en: number; ex: number }> }>();
   let hasEn = false, hasEx = false, hasHour = false;
@@ -524,11 +524,57 @@ function analyzeTraffic(ds: Dataset) {
   if (!dayList.length) return { kpis, findings, daily: [] as DailyPoint[], breakdowns };
   const totalEn = sum(dayList.map((d) => days.get(d)!.en));
   const totalEx = sum(dayList.map((d) => days.get(d)!.ex));
-  if (hasEn) {
-    kpis.push({ key: "entries", label: "Entries", value: totalEn, format: "int", sub: `${dayList.length} days` });
-    kpis.push({ key: "entriesPerDay", label: "Avg entries / day", value: Math.round(totalEn / dayList.length), format: "int" });
+  const C = site.spaces && site.spaces > 0 ? site.spaces : undefined;
+  const base = site.overnight && site.overnight > 0 ? site.overnight : 0;
+  const isWeekend = (d: string) => weekday(d) === 0 || weekday(d) === 6;
+  const wkdays = dayList.filter((d) => !isWeekend(d)), wkends = dayList.filter(isWeekend);
+  const avgOf = (ds_: string[]) => (ds_.length ? sum(ds_.map((d) => series0(d))) / ds_.length : 0);
+  function series0(d: string) { return hasEn ? days.get(d)!.en : days.get(d)!.ex; }
+  if (hasEn) kpis.push({ key: "entries", label: "Entries", value: totalEn, format: "int", sub: `${dayList.length} days` });
+  if (hasEn) kpis.push({ key: "entriesPerDay", label: "Avg entries / day", value: Math.round(totalEn / dayList.length), format: "int",
+    sub: wkdays.length && wkends.length ? `${Math.round(avgOf(wkdays)).toLocaleString()} weekdays · ${Math.round(avgOf(wkends)).toLocaleString()} weekends` : undefined });
+
+  // Occupancy, estimated from entries minus exits hour by hour.
+  // The emptiest moment of the period is set to the overnight count the user gave (0 if none),
+  // so without it these are "at least" figures.
+  let occ: { day: string; h: number; cars: number }[] = [];
+  if (hasHour && hasEn && hasEx) {
+    let run = 0;
+    for (const d of dayList) for (let h = 0; h < 24; h++) {
+      const v = days.get(d)!.hours.get(h);
+      run += v ? v.en - v.ex : 0;
+      occ.push({ day: d, h, cars: run });
+    }
+    const low = Math.min(...occ.map((o) => o.cars));
+    occ = occ.map((o) => ({ ...o, cars: o.cars - low + base }));
+  }
+  const dayPeak = new Map<string, { cars: number; h: number }>();
+  for (const o of occ) { const p = dayPeak.get(o.day); if (!p || o.cars > p.cars) dayPeak.set(o.day, { cars: o.cars, h: o.h }); }
+  if (occ.length) {
+    const top = occ.reduce((a, b) => (b.cars > a.cars ? b : a));
+    const typical = median(wkdays.map((d) => dayPeak.get(d)!.cars));
+    const when = `${fmtDay(top.day, true)}, ${hourLabel(top.h)}`;
+    if (C) {
+      kpis.push({ key: "peakOcc", label: "Peak occupancy (est.)", value: top.cars / C, format: "pct", sub: `~${top.cars.toLocaleString()} of ${C.toLocaleString()} spaces · ${when}` });
+      kpis.push({ key: "typicalPeak", label: "Typical weekday peak", value: typical / C, format: "pct", sub: `~${Math.round(typical).toLocaleString()} cars at the busiest hour${base ? "" : " · add overnight cars"}` });
+      kpis.push({ key: "openAtPeak", label: "Spaces open at peak", value: Math.max(0, Math.round(C - typical)), format: "int", sub: "on a typical weekday" });
+      kpis.push({ key: "turnover", label: "Turnover", value: totalEn / C / dayList.length, format: "num", sub: "cars per space per day" });
+    } else {
+      kpis.push({ key: "peakOcc", label: "Peak cars inside (est.)", value: top.cars, format: "int", sub: `${when} · add spaces for % full` });
+      kpis.push({ key: "typicalPeak", label: "Typical weekday peak", value: Math.round(typical), format: "int", sub: "cars inside at the busiest hour" });
+    }
+    // Little's law: average cars inside = arrivals per hour x average stay
+    const avgInside = sum(occ.map((o) => o.cars - base)) / occ.length; // cars that came and went only
+    const perHour = totalEn / (dayList.length * 24);
+    if (perHour > 0 && avgInside > 0) kpis.push({ key: "avgStay", label: "Avg stay (est.)", value: avgInside / perHour, format: "num", sub: "hours per visit" });
   }
   if (hasEx) kpis.push({ key: "exits", label: "Exits", value: totalEx, format: "int" });
+  if (dayList.length >= 14) {
+    const DOW = ["Sundays", "Mondays", "Tuesdays", "Wednesdays", "Thursdays", "Fridays", "Saturdays"];
+    const byDow = [0, 1, 2, 3, 4, 5, 6].map((w) => ({ w, avg: avgOf(dayList.filter((d) => weekday(d) === w)) }));
+    const best = byDow.reduce((a, b) => (b.avg > a.avg ? b : a));
+    kpis.push({ key: "busiestDow", label: "Busiest day of week", value: Math.round(best.avg), format: "int", sub: `${hasEn ? "entries" : "exits"} on ${DOW[best.w]}, on average` });
+  }
 
   // Busiest hours
   if (hasHour) {
@@ -642,6 +688,44 @@ function analyzeTraffic(ds: Dataset) {
           dates: [d],
         });
       }
+    }
+  }
+
+  // 4) Occupancy by hour, and what it says against the number of spaces
+  if (occ.length && wkdays.length) {
+    const rows: BreakdownRow[] = [];
+    for (let h = 0; h < 24; h++) {
+      const cars = Math.round(median(occ.filter((o) => o.h === h && !isWeekend(o.day)).map((o) => o.cars)));
+      rows.push({ label: hourLabel(h), transactions: cars, revenue: 0, share: C ? cars / C : 0, note: C ? `${Math.round((cars / C) * 100)}% full` : undefined });
+    }
+    breakdowns.push({ title: "Cars inside by hour, typical weekday (est.)", dimension: "occupancy", countLabel: "cars", rows });
+  }
+  if (occ.length && C) {
+    const full = dayList.filter((d) => dayPeak.get(d)!.cars >= C * 0.95);
+    const top = Math.max(...[...dayPeak.values()].map((p) => p.cars));
+    if (top > C * 1.05) {
+      findings.push({
+        id: newId(), severity: "low", category: "Occupancy",
+        title: `Estimated cars inside (${top.toLocaleString()}) is more than the ${C.toLocaleString()} spaces`,
+        detail: `Entries minus exits suggests more cars than spaces. Either the space count is off, or a lane is over-counting entries or under-counting exits.`,
+      });
+    } else if (full.length) {
+      findings.push({
+        id: newId(), severity: "medium", category: "Occupancy",
+        title: `Garage at 95%+ full on ${full.length} day${full.length > 1 ? "s" : ""}`,
+        detail: `Estimated peak occupancy reached 95% or more on ${full.map((d) => fmtDay(d)).join(", ")}. Drivers may have been turned away. Consider higher peak rates or reserving space for monthly parkers on those days.`,
+        dates: full,
+      });
+    }
+    const typical = median(wkdays.map((d) => dayPeak.get(d)!.cars));
+    if (typical < C * 0.6 && top <= C * 1.05) {
+      const open = Math.round(C - typical);
+      findings.push({
+        id: newId(), severity: "low", category: "Unused capacity",
+        title: `About ${open.toLocaleString()} spaces sit empty at peak on a typical weekday`,
+        detail: `On a typical weekday the garage peaks at about ${Math.round(typical).toLocaleString()} cars (${Math.round((typical / C) * 100)}% of ${C.toLocaleString()} spaces). That is room to sell more monthly contracts, event or overnight parking.` +
+          (base ? ` This includes the ${base.toLocaleString()} cars you said stay overnight.` : ` Cars that never moved during the period (like overnight residents) aren't in the entry/exit counts; enter your overnight count next to the space count to correct this.`),
+      });
     }
   }
 
@@ -834,7 +918,7 @@ export function computeAsOf(datasets: Dataset[], today = new Date()): string {
   return max ? (addDays(max, 1) < todayKey ? addDays(max, 1) : todayKey) : todayKey;
 }
 
-export function analyzeProperty(property: string, datasets: Dataset[], asOf: string): PropertyReport {
+export function analyzeProperty(property: string, datasets: Dataset[], asOf: string, site?: SiteInfo): PropertyReport {
   const kpis: Kpi[] = [];
   const findings: Finding[] = [];
   const breakdowns: Breakdown[] = [];
@@ -871,7 +955,7 @@ export function analyzeProperty(property: string, datasets: Dataset[], asOf: str
     }
   }
   for (const ds of datasets.filter((d) => d.kind === "traffic")) {
-    const r = analyzeTraffic(ds);
+    const r = analyzeTraffic(ds, site);
     kpis.push(...r.kpis.filter((k) => !kpis.some((x) => x.key === k.key)));
     findings.push(...r.findings);
     breakdowns.push(...r.breakdowns);
@@ -898,14 +982,14 @@ export function analyzeProperty(property: string, datasets: Dataset[], asOf: str
     asOf,
     sources: [...new Set(datasets.map((d) => d.source))],
     kinds: [...new Set(datasets.map((d) => d.kind))],
-    kpis, daily, breakdowns, findings, monthly,
+    kpis, daily, breakdowns, findings, monthly, site,
   };
 }
 
-export function analyzeAll(datasets: Dataset[], today = new Date()): PropertyReport[] {
+export function analyzeAll(datasets: Dataset[], today = new Date(), sites: Record<string, SiteInfo> = {}): PropertyReport[] {
   const usable = datasets.filter((d) => d.kind !== "unknown");
   const asOf = computeAsOf(usable, today);
   const byProp = new Map<string, Dataset[]>();
   for (const d of usable) (byProp.get(d.property) ?? byProp.set(d.property, []).get(d.property)!).push(d);
-  return [...byProp.entries()].map(([p, ds]) => analyzeProperty(p, ds, asOf));
+  return [...byProp.entries()].map(([p, ds]) => analyzeProperty(p, ds, asOf, sites[p]));
 }

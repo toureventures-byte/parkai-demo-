@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import type { Dataset, DatasetKind, PropertyReport } from "../lib/types";
+import type { Dataset, DatasetKind, PropertyReport, SiteInfo } from "../lib/types";
 import { readFile } from "../lib/parse";
 import { detectDataset, remapAs, requiredMet, FIELDS } from "../lib/detect";
 import { analyzeAll } from "../lib/analyze";
@@ -40,6 +40,18 @@ interface DataState {
   removeParker: (id: string) => Promise<void>;
   markPaid: (parkerId: string, paidDate: string) => Promise<void>;
   reimport: (datasetId: string) => Promise<void>;
+  /** Spaces and overnight cars per property, entered on Insights (kept in this browser). */
+  sites: Record<string, SiteInfo>;
+  setSite: (property: string, info: SiteInfo) => void;
+}
+
+const SITES_KEY = "parkgrid-sites";
+function loadSites(): Record<string, SiteInfo> {
+  try {
+    return JSON.parse(localStorage.getItem(SITES_KEY) ?? "{}") ?? {};
+  } catch {
+    return {};
+  }
 }
 
 const Ctx = createContext<DataState | null>(null);
@@ -98,7 +110,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
     () => [...datasets.filter((d) => !(isMonthlyKind(d) && d.imported !== undefined)), ...datasetsFromRows(monthly.parkers, monthly.invoices)],
     [datasets, monthly],
   );
-  const reports = useMemo(() => analyzeAll(analysisSets), [analysisSets]);
+  const [sites, setSites] = useState<Record<string, SiteInfo>>(loadSites);
+  const setSite = useCallback((property: string, info: SiteInfo) => {
+    setSites((cur) => {
+      const next = { ...cur, [property]: info };
+      try { localStorage.setItem(SITES_KEY, JSON.stringify(next)); } catch { /* storage unavailable */ }
+      return next;
+    });
+  }, []);
+  const reports = useMemo(() => analyzeAll(analysisSets, new Date(), sites), [analysisSets, sites]);
 
   /** Ask the AI to map a file the rules couldn't fully understand. */
   const aiImprove = useCallback(async (ds: Dataset): Promise<Dataset> => {
@@ -221,7 +241,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [reports, summaries]);
 
   const value: DataState = {
-    datasets, reports, reading, errors, aiStatus, summaries: summariesByProperty,
+    datasets, reports, reading, errors, aiStatus, summaries: summariesByProperty, sites, setSite,
     addFiles: (files) => ingest(files),
     loadSample,
     removeDataset: (id) => setDatasets((ds) => {

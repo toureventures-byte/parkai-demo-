@@ -117,4 +117,11 @@ export interface PropertyReport {
   breakdowns: Breakdown[];
   findings: Finding[];
   monthly?: { parkers: MonthlyParker[]; activeCount: number; mrr: number; currentPeriod: string };
+  /** Entered by the user: number of spaces, and cars that stay parked overnight. */
+  site?: SiteInfo;
+}
+
+export interface SiteInfo {
+  spaces?: number;
+  overnight?: number;
 }

@@ -57,6 +57,33 @@ function RevenueChart({ report }: { report: PropertyReport }) {
   );
 }
 
+function SiteSettings({ property }: { property: string }) {
+  const { sites, setSite } = useData();
+  const site = sites[property] ?? {};
+  const [spaces, setSpaces] = useState(site.spaces ? String(site.spaces) : "");
+  const [overnight, setOvernight] = useState(site.overnight ? String(site.overnight) : "");
+  useEffect(() => {
+    setSpaces(site.spaces ? String(site.spaces) : "");
+    setOvernight(site.overnight ? String(site.overnight) : "");
+  }, [property, site.spaces, site.overnight]);
+  const num = (v: string) => { const n = parseInt(v.replace(/[^\d]/g, ""), 10); return Number.isFinite(n) && n > 0 ? n : undefined; };
+  const save = () => setSite(property, { spaces: num(spaces), overnight: num(overnight) });
+  const input = "w-24 rounded border border-white/10 bg-navy-900 px-2 py-1 text-sm text-slate-100 focus:border-electric-500/50 focus:outline-none";
+  return (
+    <div className="mb-4 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border border-white/[0.06] bg-white/[0.02] px-4 py-2.5 text-xs text-slate-400">
+      <label className="flex items-center gap-2">
+        Spaces
+        <input inputMode="numeric" className={input} value={spaces} placeholder="e.g. 1,500" onChange={(e) => setSpaces(e.target.value)} onBlur={save} onKeyDown={(e) => e.key === "Enter" && save()} />
+      </label>
+      <label className="flex items-center gap-2">
+        Cars parked overnight
+        <input inputMode="numeric" className={input} value={overnight} placeholder="optional" onChange={(e) => setOvernight(e.target.value)} onBlur={save} onKeyDown={(e) => e.key === "Enter" && save()} />
+      </label>
+      <span className="text-slate-500">Used for occupancy. Entry and exit counts can't see cars that never moved, so add your usual overnight count.</span>
+    </div>
+  );
+}
+
 function SummaryCard({ property }: { property: string }) {
   const { summaries, ensureSummary } = useData();
   useEffect(() => ensureSummary(property), [property, ensureSummary]);
@@ -224,10 +251,12 @@ export default function Insights() {
         </div>
       )}
 
+      {current.kinds.includes("traffic") && <SiteSettings property={current.property} />}
+
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <div className="space-y-6 xl:col-span-2">
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            {current.kpis.slice(0, 8).map((k) => (
+            {current.kpis.slice(0, 12).map((k) => (
               <Card key={k.key + k.label}>
                 <p className="text-xs font-medium uppercase tracking-wide text-slate-400">{k.label}</p>
                 <p className="mt-2 text-2xl font-semibold tracking-tight text-white">{fmtKpi(k)}</p>
