@@ -477,6 +477,182 @@ function analyzeActivity(ds: Dataset) {
 }
 
 /* ------------------------------------------------------------------ */
+/* Entries & exits (car counts, often by hour)                         */
+/* ------------------------------------------------------------------ */
+
+function hourOf(v: Cell): number | null {
+  if (typeof v === "number") {
+    if (Number.isInteger(v) && v >= 0 && v <= 23) return v;
+    if (v >= 0 && v < 1) return Math.floor(v * 24 + 1e-6);
+    return null;
+  }
+  if (v instanceof Date) return v.getUTCHours();
+  const s = toText(v);
+  const t = parseTime(s.split(/\s*[-–]\s*/)[0]);
+  if (t !== null) return Math.floor(t / 3600000);
+  const m = s.match(/^(\d{1,2})\s*([ap])\.?m?\.?$/i);
+  if (m) return (+m[1] % 12) + (m[2].toLowerCase() === "p" ? 12 : 0);
+  return null;
+}
+
+const hourLabel = (h: number) => `${h === 0 ? 12 : h > 12 ? h - 12 : h} ${h < 12 ? "AM" : "PM"}`;
+
+function analyzeTraffic(ds: Dataset) {
+  const g = { date: col(ds, "date"), hour: col(ds, "hour"), en: col(ds, "entries"), ex: col(ds, "exits") };
+  const days = new Map<string, { en: number; ex: number; hours: Map<number, { en: number; ex: number }> }>();
+  let hasEn = false, hasEx = false, hasHour = false;
+  for (const r of ds.rows) {
+    const ts = toTimestamp(g.date(r));
+    if (ts === null) continue;
+    const day = dayKey(ts);
+    const en = toNumber(g.en(r)), ex = toNumber(g.ex(r));
+    if (en === null && ex === null) continue;
+    hasEn ||= en !== null; hasEx ||= ex !== null;
+    const d = days.get(day) ?? days.set(day, { en: 0, ex: 0, hours: new Map() }).get(day)!;
+    d.en += en ?? 0; d.ex += ex ?? 0;
+    const h = ds.mapping.hour !== null && ds.mapping.hour !== undefined ? hourOf(g.hour(r)) : null;
+    if (h !== null) {
+      hasHour = true;
+      const hh = d.hours.get(h) ?? d.hours.set(h, { en: 0, ex: 0 }).get(h)!;
+      hh.en += en ?? 0; hh.ex += ex ?? 0;
+    }
+  }
+  const dayList = [...days.keys()].sort();
+  const kpis: Kpi[] = [];
+  const findings: Finding[] = [];
+  const breakdowns: Breakdown[] = [];
+  if (!dayList.length) return { kpis, findings, daily: [] as DailyPoint[], breakdowns };
+  const totalEn = sum(dayList.map((d) => days.get(d)!.en));
+  const totalEx = sum(dayList.map((d) => days.get(d)!.ex));
+  if (hasEn) {
+    kpis.push({ key: "entries", label: "Entries", value: totalEn, format: "int", sub: `${dayList.length} days` });
+    kpis.push({ key: "entriesPerDay", label: "Avg entries / day", value: Math.round(totalEn / dayList.length), format: "int" });
+  }
+  if (hasEx) kpis.push({ key: "exits", label: "Exits", value: totalEx, format: "int" });
+
+  // Busiest hours
+  if (hasHour) {
+    const byHour = new Map<number, number>();
+    for (const d of dayList) for (const [h, v] of days.get(d)!.hours) byHour.set(h, (byHour.get(h) ?? 0) + (hasEn ? v.en : v.ex));
+    const ranked = [...byHour.entries()].sort((a, b) => b[1] - a[1]);
+    if (ranked.length && ranked[0][1] > 0) {
+      kpis.push({ key: "peakHour", label: "Busiest hour", value: Math.round(ranked[0][1] / dayList.length), format: "int", sub: `${hasEn ? "entries" : "exits"}/day at ${hourLabel(ranked[0][0])}` });
+      const tot = sum([...byHour.values()]) || 1;
+      breakdowns.push({
+        title: `${hasEn ? "Entries" : "Exits"} by hour of day`, dimension: "hour", countLabel: "per day",
+        rows: [...byHour.entries()].sort((a, b) => a[0] - b[0]).map(([h, v]) => ({
+          label: hourLabel(h), transactions: Math.round(v / dayList.length), revenue: 0, share: v / tot,
+        })),
+      });
+    }
+  }
+
+  const normal = new Map<string, number>(); // weekday-hour -> median cars (in + out)
+  if (hasHour) for (let w = 0; w < 7; w++) for (let h = 0; h < 24; h++) {
+    const vals = dayList.filter((d) => weekday(d) === w).map((d) => { const v = days.get(d)!.hours.get(h); return v ? v.en + v.ex : 0; });
+    if (vals.length) normal.set(`${w}-${h}`, median(vals));
+  }
+  const carsAt = (d: string, h: number) => { const v = days.get(d)!.hours.get(h); return v ? v.en + v.ex : 0; };
+  /** The hour after which a day stayed far below normal ("from 3 PM on"), if there is one. */
+  const dropStart = (d: string): number | null => {
+    if (!hasHour) return null;
+    const w = weekday(d);
+    for (let h = 1; h < 23; h++) {
+      if (carsAt(d, h) >= (normal.get(`${w}-${h}`) ?? 0) * 0.5) continue; // the drop starts in a low hour
+      let before = 0, beforeN = 0, after = 0, afterN = 0;
+      for (let k = 0; k < 24; k++) {
+        const n = normal.get(`${w}-${k}`) ?? 0;
+        if (k < h) { before += carsAt(d, k); beforeN += n; } else { after += carsAt(d, k); afterN += n; }
+      }
+      if (afterN >= 100 && after < afterN * 0.4 && before >= beforeN * 0.7) return h;
+    }
+    return null;
+  };
+
+  // 1) Days with much less traffic than normal for that weekday
+  const series = new Map(dayList.map((d) => [d, hasEn ? days.get(d)!.en : days.get(d)!.ex]));
+  const what = hasEn ? "Entries" : "Exits";
+  if (dayList.length >= 14) {
+    const edges = new Set([dayList[0], dayList[dayList.length - 1]]);
+    const base = new Map<string, number>();
+    const low: string[] = [];
+    for (const d of dayList) {
+      const b = median(dayList.filter((x) => x !== d && !edges.has(x) && weekday(x) === weekday(d)).map((x) => series.get(x)!));
+      base.set(d, b);
+      if (b >= 20 && series.get(d)! < b * 0.6 && !edges.has(d)) low.push(d);
+    }
+    for (const run of runsOfDays(low)) {
+      const cur = sum(run.map((d) => series.get(d)!)), b = sum(run.map((d) => base.get(d)!));
+      const start = run.length === 1 ? dropStart(run[0]) : null;
+      findings.push({
+        id: newId(), severity: cur < b * 0.35 ? "high" : "medium", category: "Traffic drop",
+        title: `${what} down ${((1 - cur / b) * 100).toFixed(0)}% on ${fmtRange(run)}${start !== null ? `, from ${hourLabel(start)} on` : ""}`,
+        detail: `${what} were ${cur.toLocaleString()} on ${fmtRange(run)} vs a normal ${Math.round(b).toLocaleString()} for those weekdays.` +
+          (start !== null
+            ? ` Traffic was normal until about ${hourLabel(start)}, then stayed far below usual for the rest of the day. A sudden, lasting drop like that usually means a gate, counter or lane went down, or the garage closed early. Check the logs for that afternoon.`
+            : " Check for a gate or counter problem, a closure, or an event before assuming demand fell."),
+        dates: run,
+      });
+    }
+  }
+
+  // 2) Entries and exits that don't match
+  if (hasEn && hasEx && dayList.length >= 7) {
+    const gaps = dayList.map((d) => days.get(d)!.en - days.get(d)!.ex);
+    const typical = median(gaps.map(Math.abs));
+    const bad = dayList.filter((d, i) => {
+      const gap = Math.abs(gaps[i]);
+      const vol = Math.max(days.get(d)!.en, days.get(d)!.ex);
+      return gap >= Math.max(40, typical * 3) && gap >= vol * 0.12;
+    });
+    for (const d of bad) {
+      const { en, ex } = days.get(d)!;
+      findings.push({
+        id: newId(), severity: "medium", category: "Entry / exit mismatch",
+        title: `${en.toLocaleString()} entries vs ${ex.toLocaleString()} exits on ${fmtDay(d, true)}`,
+        detail: `A gap of ${Math.abs(en - ex).toLocaleString()} cars; on a normal day the gap is about ${Math.round(typical)}. ${en < ex ? "More cars left than came in: an entry gate may have been up or not counting, which can mean unpaid parking." : "More cars came in than left: an exit gate may have been up or not counting, which can mean cars leaving without paying."}`,
+        dates: [d],
+      });
+    }
+    const net = totalEn - totalEx;
+    if (Math.abs(net) >= Math.max(100, Math.max(totalEn, totalEx) * 0.03)) {
+      findings.push({
+        id: newId(), severity: "low", category: "Entry / exit mismatch",
+        title: `${Math.abs(net).toLocaleString()} more ${net > 0 ? "entries than exits" : "exits than entries"} over the period`,
+        detail: `${totalEn.toLocaleString()} entries vs ${totalEx.toLocaleString()} exits from ${fmtDay(dayList[0])} to ${fmtDay(dayList[dayList.length - 1])}. Over a month these should roughly balance; a steady gap points to a lane that under-counts.`,
+      });
+    }
+  }
+
+  // 3) Normally busy hours that dropped to zero (equipment down)
+  if (hasHour && dayList.length >= 7) {
+    for (const d of dayList) {
+      const dead: number[] = [];
+      for (let h = 0; h < 24; h++) {
+        const v = days.get(d)!.hours.get(h);
+        if (!v) continue;
+        if (v.en + v.ex === 0 && (normal.get(`${weekday(d)}-${h}`) ?? 0) >= 15) dead.push(h);
+      }
+      if (dead.length) {
+        const usual = Math.round(sum(dead.map((h) => normal.get(`${weekday(d)}-${h}`)!)));
+        findings.push({
+          id: newId(), severity: dead.length >= 2 ? "high" : "medium", category: "Counter / gate outage",
+          title: `No cars recorded ${dead.length === 1 ? `at ${hourLabel(dead[0])}` : `for ${dead.length} busy hours`} on ${fmtDay(d, true)}`,
+          detail: `Zero entries and exits during ${dead.map(hourLabel).join(", ")}, when ${dead.length === 1 ? "that hour normally sees" : "those hours normally see"} about ${usual.toLocaleString()} cars in total. Check whether the gates or counters were down, and whether cars got through without a ticket.`,
+          dates: [d],
+        });
+      }
+    }
+  }
+
+  const daily: DailyPoint[] = dayList.map((d) => ({
+    date: d, entries: hasEn ? days.get(d)!.en : undefined, exits: hasEx ? days.get(d)!.ex : undefined,
+    transactions: hasEn ? days.get(d)!.en : days.get(d)!.ex,
+  }));
+  return { kpis, findings, daily, breakdowns };
+}
+
+/* ------------------------------------------------------------------ */
 /* Monthly parkers                                                     */
 /* ------------------------------------------------------------------ */
 
@@ -643,7 +819,7 @@ export function computeAsOf(datasets: Dataset[], today = new Date()): string {
   let max = "";
   for (const ds of datasets) {
     const fields = ds.kind === "transactions" ? ["entry"] : ds.kind === "payments" ? ["dueDate", "paidDate"]
-      : ds.kind === "daily_summary" || ds.kind === "daily_activity" ? ["date"] : [];
+      : ds.kind === "daily_summary" || ds.kind === "daily_activity" || ds.kind === "traffic" ? ["date"] : [];
     for (const fkey of fields) {
       const i = ds.mapping[fkey];
       if (i === null || i === undefined) continue;
@@ -692,6 +868,17 @@ export function analyzeProperty(property: string, datasets: Dataset[], asOf: str
     else {
       const byDay = new Map(r.daily.map((d) => [d.date, d]));
       daily = daily.map((d) => ({ ...d, occupancy: byDay.get(d.date)?.occupancy, validations: d.validations ?? byDay.get(d.date)?.validations }));
+    }
+  }
+  for (const ds of datasets.filter((d) => d.kind === "traffic")) {
+    const r = analyzeTraffic(ds);
+    kpis.push(...r.kpis.filter((k) => !kpis.some((x) => x.key === k.key)));
+    findings.push(...r.findings);
+    breakdowns.push(...r.breakdowns);
+    if (!daily.length) daily = r.daily;
+    else {
+      const byDay = new Map(r.daily.map((d) => [d.date, d]));
+      daily = daily.map((d) => ({ ...d, entries: byDay.get(d.date)?.entries, exits: byDay.get(d.date)?.exits }));
     }
   }
   const roster = datasets.find((d) => d.kind === "roster");

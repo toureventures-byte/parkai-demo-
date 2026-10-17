@@ -94,14 +94,16 @@ export async function buildReport(report: PropertyReport, summaryText?: string):
   });
   y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 24;
 
-  // Daily revenue chart
-  const pts = report.daily.filter((d) => d.revenue !== undefined);
+  // Daily chart: revenue, or car counts when there is no revenue
+  const chartKey = report.daily.filter((d) => d.revenue !== undefined).length >= 3 ? "revenue" : report.daily.some((d) => d.entries !== undefined) ? "entries" : "exits";
+  const pts = report.daily.filter((d) => d[chartKey] !== undefined).map((d) => ({ ...d, revenue: d[chartKey] }));
+  const axis = (v: number) => (chartKey === "revenue" ? money(v) : Math.round(v).toLocaleString());
   if (pts.length >= 3) {
     if (y > 560) { doc.addPage(); y = 50; }
     const flagged = new Set(report.findings.flatMap((f) => (f.severity !== "low" ? f.dates ?? [] : [])));
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
-    doc.text("Daily revenue", M, y);
+    doc.text(chartKey === "revenue" ? "Daily revenue" : chartKey === "entries" ? "Daily entries" : "Daily exits", M, y);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.setTextColor(...MUTED);
@@ -114,7 +116,7 @@ export async function buildReport(report: PropertyReport, summaryText?: string):
     for (const frac of [0, 0.5, 1]) {
       const gy = y + h - h * frac;
       doc.line(x0, gy, x0 + cw, gy);
-      doc.text(money(max * frac), x0 - 4, gy + 3, { align: "right" });
+      doc.text(axis(max * frac), x0 - 4, gy + 3, { align: "right" });
     }
     pts.forEach((p, i) => {
       const bh = (p.revenue! / max) * h;
@@ -134,7 +136,7 @@ export async function buildReport(report: PropertyReport, summaryText?: string):
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   doc.setTextColor(...INK);
-  doc.text(`Audit findings: ${report.findings.length} found, ${money(atStake)} at stake`, M, y);
+  doc.text(`Audit findings: ${report.findings.length} found${atStake > 0 ? `, ${money(atStake)} at stake` : ""}`, M, y);
   y += 6;
   autoTable(doc, {
     startY: y,
@@ -161,8 +163,8 @@ export async function buildReport(report: PropertyReport, summaryText?: string):
   for (const b of report.breakdowns) {
     autoTable(doc, {
       startY: y,
-      head: [[b.title, "Transactions", "Revenue", "Share"]],
-      body: b.rows.map((r) => [r.label + (r.note ? `  (${r.note})` : ""), r.transactions.toLocaleString(), money(r.revenue), `${(r.share * 100).toFixed(1)}%`]),
+      head: [b.countLabel ? [b.title, `Cars ${b.countLabel}`, "", "Share"] : [b.title, "Transactions", "Revenue", "Share"]],
+      body: b.rows.map((r) => [r.label + (r.note ? `  (${r.note})` : ""), r.transactions.toLocaleString(), b.countLabel ? "" : money(r.revenue), `${(r.share * 100).toFixed(1)}%`]),
       theme: "plain",
       margin: { left: M, right: M },
       styles: { fontSize: 9, cellPadding: 4, textColor: INK },

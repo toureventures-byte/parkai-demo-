@@ -17,16 +17,20 @@ const FLAG = "#fb7185";
 
 function RevenueChart({ report }: { report: PropertyReport }) {
   const flagged = useMemo(() => new Set(report.findings.flatMap((f) => (f.severity !== "low" ? f.dates ?? [] : []))), [report]);
-  const data = report.daily.filter((d) => d.revenue !== undefined).map((d) => ({ ...d, label: fmtDay(d.date), flagged: flagged.has(d.date) }));
+  const hasRev = report.daily.filter((d) => d.revenue !== undefined).length >= 3;
+  const key = hasRev ? "revenue" : report.daily.some((d) => d.entries !== undefined) ? "entries" : "exits";
+  const name = key === "revenue" ? "Revenue" : key === "entries" ? "Entries" : "Exits";
+  const fmt = (v: number) => (key === "revenue" ? money(v) : `${v.toLocaleString()} cars`);
+  const data = report.daily.filter((d) => d[key] !== undefined).map((d) => ({ ...d, value: d[key]!, label: fmtDay(d.date), flagged: flagged.has(d.date) }));
   if (data.length < 3) return null;
   return (
     <Card>
       <CardHeader
-        title="Daily revenue"
+        title={key === "revenue" ? "Daily revenue" : `Daily ${name.toLowerCase()}`}
         subtitle={`${data.length} days`}
         action={
           <div className="flex items-center gap-4 text-xs text-slate-400">
-            <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ background: BAR }} /> Revenue</span>
+            <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ background: BAR }} /> {name}</span>
             {flagged.size > 0 && <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ background: FLAG }} /> Flagged by audit</span>}
           </div>
         }
@@ -36,14 +40,14 @@ function RevenueChart({ report }: { report: PropertyReport }) {
           <BarChart data={data} margin={{ top: 4, right: 4, left: 0, bottom: 0 }} barCategoryGap={2}>
             <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
             <XAxis dataKey="label" stroke="#7d9a8b" fontSize={11} tickLine={false} axisLine={false} interval="preserveStartEnd" minTickGap={24} />
-            <YAxis stroke="#7d9a8b" fontSize={11} tickLine={false} axisLine={false} width={56} tickFormatter={(v) => (v >= 1000 ? `$${(v / 1000).toFixed(v >= 10000 ? 0 : 1)}k` : `$${v}`)} />
+            <YAxis stroke="#7d9a8b" fontSize={11} tickLine={false} axisLine={false} width={56} tickFormatter={(v) => { const p = key === "revenue" ? "$" : ""; return v >= 1000 ? `${p}${(v / 1000).toFixed(v >= 10000 ? 0 : 1)}k` : `${p}${v}`; }} />
             <Tooltip
               cursor={{ fill: "rgba(255,255,255,0.04)" }}
               contentStyle={{ background: "#0b2a20", border: "1px solid #254238", borderRadius: 6, fontSize: 12, color: "#e7f6ee" }}
               labelStyle={{ color: "#a2b8ad" }}
-              formatter={(v, _n, p) => [money(Number(v)) + ((p?.payload as { flagged?: boolean })?.flagged ? "  · flagged" : ""), "Revenue"]}
+              formatter={(v, _n, p) => [fmt(Number(v)) + ((p?.payload as { flagged?: boolean })?.flagged ? "  · flagged" : ""), name]}
             />
-            <Bar dataKey="revenue" radius={[3, 3, 0, 0]}>
+            <Bar dataKey="value" radius={[3, 3, 0, 0]}>
               {data.map((d) => <Cell key={d.date} fill={d.flagged ? FLAG : BAR} fillOpacity={d.flagged ? 0.95 : 0.8} />)}
             </Bar>
           </BarChart>
@@ -84,7 +88,7 @@ function Findings({ report }: { report: PropertyReport }) {
     <Card>
       <CardHeader
         title="Audit findings"
-        subtitle={report.findings.length ? `${report.findings.length} found · ${money(atStake)} at stake` : "Nothing unusual found"}
+        subtitle={report.findings.length ? `${report.findings.length} found${atStake > 0 ? ` · ${money(atStake)} at stake` : ""}` : "Nothing unusual found"}
       />
       {report.findings.length === 0 ? (
         <p className="text-sm text-slate-400">Cash, tickets, lanes and payments look consistent for this period.</p>
@@ -242,14 +246,20 @@ export default function Insights() {
               <CardHeader title={b.title} />
               <table className="w-full text-sm">
                 <tbody className="divide-y divide-white/[0.04]">
-                  {b.rows.slice(0, 8).map((r) => (
+                  {(b.countLabel ? b.rows : b.rows.slice(0, 8)).map((r) => (
                     <tr key={r.label}>
                       <td className="py-2 pr-2 text-slate-200">
                         {r.label}
                         {r.note && <span className="block text-xs text-slate-500">{r.note}</span>}
                       </td>
-                      <td className="py-2 pr-2 text-right text-xs text-slate-500">{r.transactions.toLocaleString()} tx</td>
-                      <td className="py-2 text-right font-medium text-white">{money(r.revenue)}</td>
+                      {b.countLabel ? (
+                        <td className="py-2 text-right font-medium text-white">{r.transactions.toLocaleString()} <span className="text-xs font-normal text-slate-500">{b.countLabel}</span></td>
+                      ) : (
+                        <>
+                          <td className="py-2 pr-2 text-right text-xs text-slate-500">{r.transactions.toLocaleString()} tx</td>
+                          <td className="py-2 text-right font-medium text-white">{money(r.revenue)}</td>
+                        </>
+                      )}
                     </tr>
                   ))}
                 </tbody>

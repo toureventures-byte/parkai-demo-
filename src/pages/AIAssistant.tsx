@@ -32,6 +32,7 @@ export default function AIAssistant() {
     if (kinds.has("transactions")) s.push("Why did revenue drop, and on which days?", "Which attendant gives the most comps?");
     if (kinds.has("payments")) s.push("Who hasn't paid this month?");
     if (kinds.has("daily_activity")) s.push("Anything unusual in the daily activity report?");
+    if (kinds.has("traffic")) s.push("Were there any days when the gates or counters looked down?");
     return s.slice(0, 6);
   }, [reports]);
 

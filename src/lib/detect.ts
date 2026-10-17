@@ -215,7 +215,9 @@ export function detectDataset(t: RawTable): Dataset {
     id: `ds${++counter}-${Date.now().toString(36)}`,
     source: t.source,
     sheet: t.sheet,
-    property: t.propertyHint || guessProperty(t.source),
+    property: t.propertyHint
+      ? (t.propertyHint === t.propertyHint.toUpperCase() ? t.propertyHint.toLowerCase().replace(/\b[a-z]/g, (c) => c.toUpperCase()) : t.propertyHint)
+      : guessProperty(t.source),
     kind,
     headers: t.headers,
     rows: t.rows,
