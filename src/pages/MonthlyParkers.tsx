@@ -13,10 +13,12 @@ import { fmtDay, money } from "../lib/values";
 import type { MonthlyParker } from "../lib/types";
 import type { NewParker, ParkerRow } from "../lib/monthlyStore";
 
-type Filter = "all" | "flagged" | "pastdue" | "late" | "repeat" | "ending" | "inactive";
-const FILTERS: { key: Filter; label: string }[] = [
+type Filter = "all" | "flagged" | "bigbalance" | "balance" | "pastdue" | "late" | "repeat" | "ending" | "inactive";
+const FILTERS: { key: Filter; label: string; onlyIfAny?: boolean }[] = [
   { key: "all", label: "All" },
   { key: "flagged", label: "Flagged" },
+  { key: "bigbalance", label: "Large balance", onlyIfAny: true },
+  { key: "balance", label: "Balance owed", onlyIfAny: true },
   { key: "pastdue", label: "Past due" },
   { key: "late", label: "Late this month" },
   { key: "repeat", label: "Repeat late" },
@@ -128,7 +130,7 @@ export default function MonthlyParkers() {
 
   const parkers = report?.monthly?.parkers ?? [];
   const counts = useMemo(() => {
-    const c: Record<Filter, number> = { all: 0, flagged: 0, pastdue: 0, late: 0, repeat: 0, ending: 0, inactive: 0 };
+    const c: Record<Filter, number> = { all: 0, flagged: 0, bigbalance: 0, balance: 0, pastdue: 0, late: 0, repeat: 0, ending: 0, inactive: 0 };
     for (const p of parkers) {
       if (isInactive(p)) { c.inactive++; continue; }
       c.all++;
@@ -177,7 +179,7 @@ export default function MonthlyParkers() {
       <PageHeader
         eyebrow="Monthly parkers"
         title={property}
-        description={`${report.monthly.activeCount} active parkers · billing period ${report.monthly.currentPeriod || "—"} · as of ${fmtDay(report.asOf)}${mode === "demo" ? " · saved in this browser" : ""}`}
+        description={`${report.monthly.activeCount} active parkers · ${report.monthly.currentPeriod ? `billing period ${report.monthly.currentPeriod} · ` : ""}as of ${fmtDay(report.asOf)}${mode === "demo" ? " · saved in this browser" : ""}`}
         actions={
           <>
             {busy && <Loader2 className="h-4 w-4 animate-spin text-slate-400" aria-label="Saving" />}
@@ -203,8 +205,13 @@ export default function MonthlyParkers() {
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {[
           { label: "Active parkers", value: report.monthly.activeCount.toLocaleString() },
-          { label: "Monthly recurring revenue", value: money(report.monthly.mrr) },
-          { label: "Flagged by AI", value: counts.flagged.toLocaleString(), sub: `${counts.pastdue} past due · ${counts.late} late` },
+          report.monthly.mrr > 0
+            ? { label: "Monthly recurring revenue", value: money(report.monthly.mrr) }
+            : { label: "Accounts with a balance", value: parkers.filter((p) => !isInactive(p) && p.balance > 0).length.toLocaleString() },
+          {
+            label: "Flagged by AI", value: counts.flagged.toLocaleString(),
+            sub: counts.bigbalance || counts.balance ? `${counts.bigbalance} large balance · ${counts.balance} about one bill` : `${counts.pastdue} past due · ${counts.late} late`,
+          },
           { label: "Outstanding balance", value: money(owed) },
         ].map((k) => (
           <Card key={k.label}>
@@ -218,7 +225,7 @@ export default function MonthlyParkers() {
       <Card className="mt-6" padded={false}>
         <div className="flex flex-wrap items-center gap-3 border-b border-white/[0.06] p-4">
           <div className="flex flex-wrap gap-1.5">
-            {FILTERS.map((f) => (
+            {FILTERS.filter((f) => !f.onlyIfAny || counts[f.key] > 0).map((f) => (
               <button
                 key={f.key}
                 onClick={() => setFilter(f.key)}

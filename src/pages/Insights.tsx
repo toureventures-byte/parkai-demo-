@@ -214,7 +214,7 @@ export default function Insights() {
       <PageHeader
         eyebrow={current.sources.length === 1 ? "1 file" : `${current.sources.length} files`}
         title={current.property}
-        description={`${fmtPeriod(current.period)}${current.monthly ? ` · as of ${fmtDay(current.asOf)}` : ""}`}
+        description={[fmtPeriod(current.period), current.monthly ? `as of ${fmtDay(current.asOf)}` : ""].filter(Boolean).join(" · ")}
         actions={
           <>
             <Link to="/app/assistant" className="inline-flex items-center gap-1.5 rounded-lg bg-white/[0.06] px-3 py-2 text-xs font-medium text-slate-100 ring-1 ring-inset ring-white/10 hover:bg-white/[0.1]">

@@ -2,6 +2,7 @@ import type { Cell, Dataset } from "./types";
 import { FIELDS } from "./detect";
 import { dayKey, toNumber, toText, toTimestamp } from "./values";
 import { supabase } from "./supabase";
+import { BALANCE_ON_FILE } from "./analyze";
 
 export interface ParkerRow {
   id: string;
@@ -182,6 +183,7 @@ export function rowsFromDatasets(property: string, roster?: Dataset, payments?: 
     return (r: Cell[]) => (i === null || i === undefined ? null : r[i] ?? null);
   };
   const parkers = new Map<string, NewParker>();
+  const balances: { key: string; bal: number }[] = [];
   if (roster) {
     const g = Object.fromEntries(FIELDS.roster.map((f) => [f.key, get(roster, f.key)]));
     for (const r of roster.rows) {
@@ -193,9 +195,17 @@ export function rowsFromDatasets(property: string, roster?: Dataset, payments?: 
         space_type: toText(g.spaceType(r)) || null, rate: toNumber(g.rate(r)), start_date: day(g.start(r)), end_date: day(g.end(r)),
         card: toText(g.card(r)) || null, card_status: toText(g.cardStatus(r)) || null, status: toText(g.status(r)) || "Active",
       });
+      const bal = toNumber(g.balance(r));
+      if (bal !== null && bal > 0.5) balances.push({ key: keyOf(code, name), bal });
     }
   }
   const invoices: (Omit<InvoiceRow, "id" | "parker_id"> & { parkerKey: string })[] = [];
+  // An account balance with no invoice history is saved as one open "Balance on file" invoice,
+  // so it shows as owed and "Mark paid" clears it.
+  const today = dayKey(Date.UTC(new Date().getFullYear(), new Date().getMonth(), new Date().getDate()));
+  for (const { key, bal } of balances) {
+    invoices.push({ parkerKey: key, period: BALANCE_ON_FILE, amount_due: bal, due_date: today, paid_date: null, amount_paid: 0, method: null });
+  }
   if (payments) {
     const g = Object.fromEntries(FIELDS.payments.map((f) => [f.key, get(payments, f.key)]));
     for (const r of payments.rows) {

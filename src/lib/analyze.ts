@@ -741,10 +741,15 @@ function analyzeTraffic(ds: Dataset, site: SiteInfo = {}) {
 /* ------------------------------------------------------------------ */
 
 const LATE_GRACE = 5;
+/** Period label for a balance imported from an account-balance column (no invoice history). */
+export const BALANCE_ON_FILE = "Balance on file";
+const inactiveStatus = (p: MonthlyParker) => /cancel|inactive|closed|terminat|suspend/i.test(p.status) || /disabl|deactiv|revoked/i.test(p.cardStatus ?? "");
 
 export function analyzeMonthly(roster: Dataset | undefined, payments: Dataset | undefined, asOf: string) {
   const parkers = new Map<string, MonthlyParker>();
   const keyOf = (id: string, name: string) => (id || name).toLowerCase();
+  /** Balances that came from an account-balance column, with no invoice history behind them. */
+  const rosterBalances = new Map<string, number>();
   if (roster) {
     const g = Object.fromEntries(Object.keys(roster.mapping).map((k) => [k, col(roster, k)]));
     for (const r of roster.rows) {
@@ -758,9 +763,11 @@ export function analyzeMonthly(roster: Dataset | undefined, payments: Dataset | 
         card: toText(g.card(r)) || undefined, cardStatus: toText(g.cardStatus(r)) || undefined, status: toText(g.status(r)) || "Active",
         flags: [], balance: 0, lateCount: 0, monthsBilled: 0,
       });
+      const bal = toNumber(g.balance(r));
+      if (bal !== null && bal > 0.5) rosterBalances.set(keyOf(id, name), bal);
     }
   }
-  type Inv = { period: string; due: number; dueDay: string; paidDay: string | null; paid: number };
+  type Inv = { period: string; due: number; dueDay: string; paidDay: string | null; paid: number; onFile?: boolean };
   const invoices = new Map<string, Inv[]>();
   if (payments) {
     const g = Object.fromEntries(Object.keys(payments.mapping).map((k) => [k, col(payments, k)]));
@@ -778,21 +785,41 @@ export function analyzeMonthly(roster: Dataset | undefined, payments: Dataset | 
       (invoices.get(k) ?? invoices.set(k, []).get(k)!).push({
         period: toText(g.period(r)) || dayKey(dueTs).slice(0, 7), due, dueDay: dayKey(dueTs),
         paidDay: paidTs !== null && paidAmt > 0 ? dayKey(paidTs) : null, paid: paidAmt,
+        onFile: toText(g.period(r)) === BALANCE_ON_FILE,
       });
     }
   }
+  for (const [k, bal] of rosterBalances) {
+    if ((invoices.get(k) ?? []).some((i) => i.onFile)) continue;
+    (invoices.get(k) ?? invoices.set(k, []).get(k)!).push({ period: BALANCE_ON_FILE, due: bal, dueDay: asOf, paidDay: null, paid: 0, onFile: true });
+  }
   let currentDue = "";
-  for (const list of invoices.values()) for (const i of list) if (i.dueDay <= asOf && i.dueDay > currentDue) currentDue = i.dueDay;
+  for (const list of invoices.values()) for (const i of list) if (!i.onFile && i.dueDay <= asOf && i.dueDay > currentDue) currentDue = i.dueDay;
   const currentPeriodLabel = (() => {
-    for (const list of invoices.values()) for (const i of list) if (i.dueDay === currentDue) return i.period;
+    for (const list of invoices.values()) for (const i of list) if (!i.onFile && i.dueDay === currentDue) return i.period;
     return "";
   })();
 
+  // Typical balance on file, as a stand-in for one month's charge when rates aren't known.
+  const onFileAmounts = [...invoices.values()].flat().filter((i) => i.onFile && !i.paidDay).map((i) => i.due);
+  const typicalOnFile = median(onFileAmounts);
   for (const [k, p] of parkers) {
-    const inactive = /cancel|inactive|closed|terminat|suspend/i.test(p.status) || /disabl|deactiv|revoked/i.test(p.cardStatus ?? "");
-    const list = (invoices.get(k) ?? []).filter((i) => i.dueDay <= asOf).sort((a, b) => a.dueDay.localeCompare(b.dueDay));
+    const inactive = inactiveStatus(p);
+    const all_ = (invoices.get(k) ?? []).filter((i) => i.dueDay <= asOf);
+    const onFile = all_.find((i) => i.onFile && !i.paidDay);
+    const list = all_.filter((i) => !i.onFile).sort((a, b) => a.dueDay.localeCompare(b.dueDay));
     p.monthsBilled = list.length;
-    p.balance = Math.max(0, sum(list.map((i) => i.due - i.paid)));
+    p.balance = Math.max(0, sum(all_.map((i) => i.due - i.paid)));
+    if (onFile && !inactiveStatus(p)) {
+      const ref = p.rate ?? typicalOnFile;
+      const big = onFile.due >= Math.max(ref * 3, 500);
+      p.flags.push({
+        code: big ? "bigbalance" : "balance", label: big ? "Large balance" : "Balance owed", severity: big ? "high" : "medium",
+        reason: big
+          ? `${money(onFile.due)} on the account, about ${Math.round(onFile.due / Math.max(ref, 1))}x ${p.rate ? "the monthly rate" : `a typical ${money(ref)} balance`}. ${/business|corporate|company/i.test(p.spaceType ?? "") ? "For a business account with several spaces this could be one month; check how many months it covers." : "Likely several months unpaid."}`
+          : `${money(onFile.due)} on the account. This may just be the current bill; check it was paid by the due date.`,
+      });
+    }
     const isLate = (i: Inv) => i.paidDay ? daysBetween(i.dueDay, i.paidDay) > LATE_GRACE : daysBetween(i.dueDay, asOf) > LATE_GRACE;
     const last6 = list.slice(-6);
     p.lateCount = last6.filter(isLate).length;
@@ -870,6 +897,24 @@ export function analyzeMonthly(roster: Dataset | undefined, payments: Dataset | 
       amount: Math.round(sum(partial.map((p) => p.balance))), names: names(partial),
     });
   }
+  const big = withFlag("bigbalance").sort((a, b) => b.balance - a.balance);
+  if (big.length) {
+    findings.push({
+      id: newId(), severity: "high", category: "Monthly collections",
+      title: `${big.length} account${big.length > 1 ? "s" : ""} with a large balance: ${money(sum(big.map((p) => p.balance)))} owed`,
+      detail: `Largest: ${big.slice(0, 6).map((p) => `${p.name} ${money(p.balance)}`).join(", ")}${big.length > 6 ? `, and ${big.length - 6} more` : ""}. These are well above a typical ${money(typicalOnFile)} bill. Business accounts with many spaces can owe that much in one month, so check how many months each covers, then collect, set up a payment plan or suspend access.`,
+      amount: Math.round(sum(big.map((p) => p.balance))), names: names(big),
+    });
+  }
+  const small = withFlag("balance");
+  if (small.length) {
+    findings.push({
+      id: newId(), severity: "medium", category: "Monthly collections",
+      title: `${small.length} account${small.length > 1 ? "s" : ""} with a balance of about one bill`,
+      detail: `${small.map((p) => `${p.name} ${money(p.balance)}`).join(", ")}. If the export was pulled right after billing, these may just be this month's invoices; check again after the due date.`,
+      amount: Math.round(sum(small.map((p) => p.balance))), names: names(small),
+    });
+  }
   const ending = withFlag("ending");
   if (ending.length) {
     findings.push({
@@ -882,10 +927,10 @@ export function analyzeMonthly(roster: Dataset | undefined, payments: Dataset | 
   const collected = sum([...invoices.values()].flat().filter((i) => i.dueDay === currentDue).map((i) => i.paid));
   const kpis: Kpi[] = [
     { key: "activeParkers", label: "Active monthly parkers", value: active.length, format: "int" },
-    { key: "mrr", label: "Monthly recurring revenue", value: mrr, format: "money" },
   ];
+  if (mrr > 0) kpis.push({ key: "mrr", label: "Monthly recurring revenue", value: mrr, format: "money" });
   if (invoices.size) {
-    kpis.push({ key: "collected", label: `Collected ${currentPeriodLabel}`.trim(), value: collected, format: "money" });
+    if (currentDue) kpis.push({ key: "collected", label: `Collected ${currentPeriodLabel}`.trim(), value: collected, format: "money" });
     kpis.push({ key: "outstanding", label: "Outstanding balance", value: sum(all.map((p) => p.balance)), format: "money", sub: `${all.filter((p) => p.balance > 0).length} parkers` });
   }
   return { parkers: all, activeCount: active.length, mrr, currentPeriod: currentPeriodLabel, findings, kpis };

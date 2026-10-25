@@ -55,19 +55,20 @@ export const FIELDS: Record<Exclude<DatasetKind, "unknown">, FieldDef[]> = {
     f("lane", "Lane / gate", "text", /^(lane|gate|device|terminal)$/),
   ],
   roster: [
-    f("parkerId", "Parker ID", "text", /^(parker|account|member|customer|permit)\s*(id|#|no|number)$/, /^id$/),
-    f("name", "Name", "text", /^(name|parker(\s*name)?|full\s*name|customer(\s*name)?|tenant)$/),
-    f("company", "Company", "text", /company|employer|tenant\s*company|organization|org/),
-    f("email", "Email", "text", /e-?mail/),
+    f("parkerId", "Parker ID", "text", /^(parker|account|acct|member|customer|permit)\s*(id|#|no|number)$/, /^id$/, /^(sub|subscription)\s*(id|#|no|number)$/),
+    f("name", "Name", "text", /^(name|parker(\s*name)?|full\s*name|customer(\s*name)?|tenant)$/, /^(sub|subscription|account|acct)\s*name$/, /^primary\s*contact$/),
+    f("company", "Company", "text", /company|employer|tenant\s*company|organization|org/, /^tenant\s*name$/),
+    f("email", "Email", "text", /^((pc|contact|primary)\s*)?e-?mail(\s*address)?$/, /e-?mail(?!\s*invoices?)/),
     f("vehicle", "Vehicle", "text", /vehicle|make|model|car$/),
     f("plate", "Plate", "text", /plate|license|lpn|tag/),
-    f("spaceType", "Space type", "text", /space|stall|permit\s*type|type$/),
+    f("spaceType", "Space type", "text", /^(space|stall|permit|parking|sub|subscription)\s*type$/, /space|stall|permit\s*type|type$/),
     f("rate", "Monthly rate", "number", /rate|price|monthly\s*fee|amount/),
     f("start", "Start date", "date", /start|begin|since|effective/),
     f("end", "Contract end", "date", /end|expir|term(ination)?|until/),
     f("card", "Access card", "text", /^(access\s*)?card(\s*(#|no|number|id))?$|credential|fob|tag\s*#/),
     f("cardStatus", "Card status", "text", /card\s*status|access\s*status/),
-    f("status", "Account status", "text", /^(account\s*)?status$/),
+    f("status", "Account status", "text", /^((account|acct|sub|subscription)\s*)?status$/),
+    f("balance", "Balance owed", "number", /^(account\s*|acct\s*|current\s*)?balance(\s*due)?$|amount\s*owed|outstanding|past\s*due\s*amount/),
   ],
   payments: [
     f("invoice", "Invoice #", "text", /invoice|bill\s*(#|no|id)|receipt/),
@@ -98,7 +99,7 @@ export const REQUIRED: Record<Exclude<DatasetKind, "unknown">, string[][]> = {
   daily_summary: [["date"], ["revenue", "cashExpected", "cashDeposited", "variance"]],
   daily_activity: [["date"], ["validations", "occupancy", "transientEntries", "monthlyEntries"]],
   traffic: [["date"], ["entries", "exits"]],
-  roster: [["name", "parkerId"], ["rate", "plate", "vehicle", "card"]],
+  roster: [["name", "parkerId"], ["rate", "plate", "vehicle", "card", "balance"]],
   payments: [["parkerId", "name", "invoice"], ["dueDate", "period"], ["paid", "paidDate"]],
 };
 
@@ -198,6 +199,16 @@ export function guessProperty(fileName: string): string {
 
 let counter = 0;
 
+/** A "Facility Name" / "Property" column holding one value names the property better than the file name. */
+function propertyFromColumn(t: RawTable): string | undefined {
+  for (let i = 0; i < t.headers.length; i++) {
+    if (!/^(facility|property|location|site|garage|lot|car\s*park)(\s*name)?$/.test(norm(t.headers[i]))) continue;
+    const vals = new Set(t.rows.map((r) => (typeof r[i] === "string" ? r[i] as string : "").trim()).filter(Boolean));
+    if (vals.size === 1) return [...vals][0];
+  }
+  return undefined;
+}
+
 export function detectDataset(t: RawTable): Dataset {
   let best: { kind: DatasetKind; mapping: Mapping; score: number } = { kind: "unknown", mapping: {}, score: 0 };
   for (const kind of KIND_ORDER) {
@@ -215,7 +226,7 @@ export function detectDataset(t: RawTable): Dataset {
     id: `ds${++counter}-${Date.now().toString(36)}`,
     source: t.source,
     sheet: t.sheet,
-    property: t.propertyHint
+    property: (t.propertyHint ??= propertyFromColumn(t))
       ? (t.propertyHint === t.propertyHint.toUpperCase() ? t.propertyHint.toLowerCase().replace(/\b[a-z]/g, (c) => c.toUpperCase()) : t.propertyHint)
       : guessProperty(t.source),
     kind,
