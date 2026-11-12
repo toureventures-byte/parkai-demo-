@@ -1,7 +1,7 @@
 {
-  "name": "parkai-demo",
+  "name": "parkgrid-web",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -21,8 +21,7 @@
     "react-dom": "^19.2.7",
     "react-router-dom": "^7.18.1",
     "read-excel-file": "^9.3.12",
-    "recharts": "^3.9.2",
-    "xlsx": "^0.18.5"
+    "recharts": "^3.9.2"
   },
   "devDependencies": {
     "@types/node": "^24.13.2",

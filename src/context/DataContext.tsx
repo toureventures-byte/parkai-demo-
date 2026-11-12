@@ -1,9 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Dataset, DatasetKind, PropertyReport, SiteInfo } from "../lib/types";
 import { readFile } from "../lib/parse";
-import { detectDataset, remapAs, requiredMet, FIELDS } from "../lib/detect";
+import { detectDataset, remapAs, requiredMet } from "../lib/detect";
 import { analyzeAll } from "../lib/analyze";
-import { aiMap, aiSummary, autoSummary, AiUnavailableError } from "../lib/ai";
+import { autoSummary } from "../lib/ai";
+import { fetchFacilities, fetchFacilitySummary, getStoredAccessToken } from "../lib/backendApi";
 import { saveFile, removeFile, clearFiles, loadFiles } from "../lib/store";
 import { monthlyStore, rowsFromDatasets, datasetsFromRows, type ParkerRow, type InvoiceRow, type NewParker } from "../lib/monthlyStore";
 import { useAuth } from "./AuthContext";
@@ -120,35 +121,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, []);
   const reports = useMemo(() => analyzeAll(analysisSets, new Date(), sites), [analysisSets, sites]);
 
-  /** Ask the AI to map a file the rules couldn't fully understand. */
-  const aiImprove = useCallback(async (ds: Dataset): Promise<Dataset> => {
-    const needsHelp = ds.kind === "unknown" || ds.confidence < 0.85;
-    if (!needsHelp || aiStatusRef.current === "offline") return ds;
-    try {
-      const res = await aiMap(ds);
-      noteAi(true);
-      const kind = (res.kind in FIELDS ? res.kind : "unknown") as DatasetKind;
-      if (kind === "unknown") return ds;
-      const mapping: Record<string, number | null> = {};
-      for (const fdef of FIELDS[kind as keyof typeof FIELDS]) {
-        const v = res.mapping?.[fdef.key];
-        mapping[fdef.key] = typeof v === "number" && v >= 0 && v < ds.headers.length ? v : null;
-      }
-      if (!requiredMet(kind, mapping)) return ds;
-      return { ...ds, kind, mapping, mappedBy: "ai", confidence: 0.9 };
-    } catch (e) {
-      if (e instanceof AiUnavailableError && e.reason !== "error") noteAi(false);
-      return ds;
-    }
-  }, [noteAi]);
-
   const ingest = useCallback(async (files: File[], persist = true) => {
     setReading((r) => [...r, ...files.map((f) => f.name)]);
     await Promise.all(files.map(async (file) => {
       try {
         const tables = await readFile(file);
         if (!tables.length) throw new Error("No table found in this file.");
-        const detected = await Promise.all(tables.map((t) => aiImprove(detectDataset(t))));
+        const detected = tables.map((t) => detectDataset(t));
         const monthlyTables = detected.filter(isMonthlyKind);
         if (monthlyTables.length) {
           if (!persist) {
@@ -177,7 +156,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         setReading((r) => r.filter((n) => n !== file.name));
       }
     }));
-  }, [aiImprove, importMonthly, reloadMonthly]);
+  }, [importMonthly, reloadMonthly]);
 
   // Load this account's monthly parkers; forget the previous account's files when someone else signs in.
   const lastUser = useRef<string | null>(null);
@@ -217,16 +196,30 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const key = `${property}|${report.findings.map((f) => f.title).join("|")}`;
     if (requested.current.has(key)) return;
     requested.current.add(key);
-    const willAsk = aiStatusRef.current !== "offline";
-    setSummaries((s) => ({ ...s, [key]: { text: autoSummary(report), by: "auto", loading: willAsk } }));
-    if (!willAsk) return;
-    aiSummary(report)
-      .then((text) => {
-        noteAi(true);
-        setSummaries((cur) => ({ ...cur, [key]: { text, by: "ai", loading: false } }));
+
+    const token = getStoredAccessToken();
+    if (!token) {
+      noteAi(false);
+      setSummaries((s) => ({ ...s, [key]: { text: autoSummary(report), by: "auto", loading: false } }));
+      return;
+    }
+
+    setSummaries((s) => ({ ...s, [key]: { text: autoSummary(report), by: "auto", loading: true } }));
+    void fetchFacilities()
+      .then((facilities) => {
+        const fac =
+          facilities.find(
+            (f) => f.name.toLowerCase() === property.toLowerCase() || f.code.toLowerCase() === property.toLowerCase(),
+          ) ?? facilities[0];
+        if (!fac) throw new Error("No facility available");
+        return fetchFacilitySummary(fac.id);
       })
-      .catch((e) => {
-        if (e instanceof AiUnavailableError && e.reason !== "error") noteAi(false);
+      .then((res) => {
+        noteAi(true);
+        setSummaries((cur) => ({ ...cur, [key]: { text: res.summary, by: "ai", loading: false } }));
+      })
+      .catch(() => {
+        noteAi(false);
         setSummaries((cur) => ({ ...cur, [key]: { ...cur[key], loading: false } }));
       });
   }, [reports, noteAi]);
