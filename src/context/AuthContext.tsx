@@ -1,10 +1,17 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase, hasBackend } from "../lib/supabase";
+import {
+  getStoredAccessToken,
+  getStoredUser,
+  clearAuthSession,
+  logoutBackend,
+  type AuthUser,
+} from "../lib/backendApi";
 
 interface AuthState {
-  /** "supabase" = real accounts; "demo" = no backend configured, one shared demo login. */
-  mode: "supabase" | "demo";
+  /** "django" = Django Ninja API; "supabase" = real supabase; "demo" = demo login. */
+  mode: "django" | "supabase" | "demo";
   ready: boolean;
   isAuthenticated: boolean;
   userId: string | null;
@@ -18,7 +25,7 @@ interface AuthState {
   /** true after arriving from a password-reset email */
   recovering: boolean;
   setNewPassword: (password: string) => Promise<void>;
-  /** demo mode only */
+  /** sync / login trigger */
   login: () => void;
 }
 
@@ -38,6 +45,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [ready, setReady] = useState(!hasBackend);
   const [recovering, setRecovering] = useState(false);
+  const [backendUser, setBackendUser] = useState<AuthUser | null>(() => getStoredUser());
+  const [backendToken, setBackendToken] = useState<string | null>(() => getStoredAccessToken());
   const [demoAuthed, setDemoAuthed] = useState(() => {
     try {
       return sessionStorage.getItem(DEMO_KEY) === "true";
@@ -45,6 +54,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return false;
     }
   });
+
+  const syncBackendSession = () => {
+    const token = getStoredAccessToken();
+    const user = getStoredUser();
+    setBackendToken(token);
+    setBackendUser(user);
+    if (token) {
+      sessionStorage.setItem(DEMO_KEY, "true");
+      setDemoAuthed(true);
+    }
+  };
 
   useEffect(() => {
     if (!supabase) return;
@@ -61,15 +81,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const meta = (session?.user.user_metadata ?? {}) as { full_name?: string; company?: string };
 
-  const value: AuthState = hasBackend
+  const isDjangoAuthed = Boolean(backendToken);
+  const isSupabaseAuthed = Boolean(session);
+
+  const value: AuthState = isDjangoAuthed
+    ? {
+        mode: "django",
+        ready: true,
+        isAuthenticated: true,
+        userId: backendUser?.id ?? "1",
+        email: backendUser?.email ?? "operator@getparkgrid.com",
+        userName: backendUser?.full_name || backendUser?.email?.split("@")[0] || "Operator",
+        userRole: "Owner",
+        signIn: async () => {},
+        signUp: async () => ({ needsConfirmation: false }),
+        resetPassword: async () => {},
+        logout: async () => {
+          await logoutBackend();
+          setBackendToken(null);
+          setBackendUser(null);
+          setDemoAuthed(false);
+          if (supabase) await supabase.auth.signOut();
+        },
+        recovering: false,
+        setNewPassword: async () => {},
+        login: syncBackendSession,
+      }
+    : hasBackend
     ? {
         mode: "supabase",
         ready,
-        isAuthenticated: !!session,
-        userId: session?.user.id ?? null,
-        email: session?.user.email ?? "",
-        userName: meta.full_name || session?.user.email?.split("@")[0] || "",
-        userRole: meta.company || "Operator",
+        isAuthenticated: isSupabaseAuthed || demoAuthed,
+        userId: session?.user.id ?? (demoAuthed ? "demo" : null),
+        email: session?.user.email ?? (demoAuthed ? "demo@getparkgrid.com" : ""),
+        userName: meta.full_name || session?.user.email?.split("@")[0] || (demoAuthed ? "Demo Operator" : ""),
+        userRole: meta.company || (demoAuthed ? "Demo account" : "Operator"),
         signIn: async (email, password) => {
           const { error } = await supabase!.auth.signInWithPassword({ email: email.trim(), password });
           if (error) throw new Error(friendly(error.message));
@@ -88,6 +134,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (error) throw new Error(friendly(error.message));
         },
         logout: async () => {
+          clearAuthSession();
+          setBackendToken(null);
+          setBackendUser(null);
+          setDemoAuthed(false);
           await supabase!.auth.signOut();
         },
         recovering,
@@ -96,7 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (error) throw new Error(friendly(error.message));
           setRecovering(false);
         },
-        login: () => {},
+        login: syncBackendSession,
       }
     : {
         mode: "demo",
@@ -117,12 +167,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         },
         resetPassword: async () => {},
         logout: async () => {
+          clearAuthSession();
           sessionStorage.removeItem(DEMO_KEY);
           setDemoAuthed(false);
         },
         recovering: false,
         setNewPassword: async () => {},
         login: () => {
+          syncBackendSession();
           sessionStorage.setItem(DEMO_KEY, "true");
           setDemoAuthed(true);
         },

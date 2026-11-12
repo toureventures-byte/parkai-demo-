@@ -5,7 +5,14 @@ import { PageHeader } from "../components/ui/PageHeader";
 import { Card } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
 import { useData } from "../context/DataContext";
-import { aiAsk, offlineAnswer, AiUnavailableError } from "../lib/ai";
+import { offlineAnswer } from "../lib/ai";
+import {
+  chatWithBackend,
+  fetchFacilities,
+  checkBackendHealth,
+  getStoredAccessToken,
+  type BackendFacility,
+} from "../lib/backendApi";
 
 interface Message {
   id: string;
@@ -19,7 +26,23 @@ export default function AIAssistant() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
+  const [facilities, setFacilities] = useState<BackendFacility[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!getStoredAccessToken()) {
+      noteAi(false);
+      return;
+    }
+    void fetchFacilities()
+      .then((list) => {
+        setFacilities(list);
+        noteAi(list.length > 0);
+      })
+      .catch(() => {
+        noteAi(false);
+      });
+  }, [noteAi]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -43,16 +66,35 @@ export default function AIAssistant() {
     setMessages((m) => [...m, userMsg]);
     setInput("");
     setTyping(true);
-    let reply: Message;
-    try {
-      const answer = await aiAsk(text.trim(), history, reports);
-      noteAi(true);
-      reply = { id: crypto.randomUUID(), role: "assistant", content: answer };
-    } catch (e) {
-      if (e instanceof AiUnavailableError && e.reason !== "error") noteAi(false);
-      const note = e instanceof AiUnavailableError && e.reason === "error" ? "The AI service had a hiccup, so here's what the audit says:\n\n" : "";
-      reply = { id: crypto.randomUUID(), role: "assistant", content: note + offlineAnswer(text, reports), offline: true };
+
+    // 1. Try authenticated Django Ninja Backend first
+    if (getStoredAccessToken()) {
+      try {
+        const health = await checkBackendHealth();
+        if (health && health.status === "ok") {
+          const facList = facilities.length ? facilities : await fetchFacilities();
+          if (facList.length > 0) {
+            const res = await chatWithBackend(facList[0].id, text.trim(), history);
+            const reply: Message = { id: crypto.randomUUID(), role: "assistant", content: res.answer };
+            setMessages((m) => [...m, reply]);
+            setTyping(false);
+            noteAi(true);
+            return;
+          }
+        }
+      } catch {
+        // Backend request failed, fall back seamlessly to deterministic local heuristics
+      }
     }
+
+    // 2. Deterministic local fallback
+    noteAi(false);
+    const reply: Message = {
+      id: crypto.randomUUID(),
+      role: "assistant",
+      content: offlineAnswer(text, reports),
+      offline: true,
+    };
     setMessages((m) => [...m, reply]);
     setTyping(false);
   }
